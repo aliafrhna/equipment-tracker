@@ -177,7 +177,6 @@
         let html5QrcodeScanner;
         let lastScannedUserId = null;
         let popupTimeout = null;
-        let isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
         // Navigation function
         function navigateTo(page) {
@@ -264,7 +263,6 @@
         // Initialize on page load
         window.addEventListener('load', function() {
             console.log("🚀 Loading public inspection scanner...");
-            console.log("📱 Is mobile device:", isMobileDevice);
             
             // Check if direct access with parameters
             if (checkDirectAccess()) {
@@ -275,12 +273,6 @@
             updateCurrentDate();
             setupFileScan();
             setupScanButtons();
-            
-            // Auto-start scanner untuk mobile device
-            if (isMobileDevice) {
-                console.log("📱 Auto-starting scanner for mobile device");
-                startCameraScan();
-            }
         });
 
         function initializeFirebase() {
@@ -314,20 +306,6 @@
 
         // Start scanner function - SMALL SCANNER
         function startCameraScan() {
-            console.log("🎥 Starting camera scan...");
-            
-            // Beri feedback visual kepada user
-            const qrReaderDiv = document.getElementById('qr-reader-small');
-            if (qrReaderDiv) {
-                qrReaderDiv.innerHTML = `
-                    <div style="text-align: center; padding: 20px; color: var(--light-text);">
-                        <i class="fas fa-spinner fa-spin fa-2x"></i>
-                        <p>Opening camera...</p>
-                        <p style="font-size: 12px;">Please allow camera permission if prompted</p>
-                    </div>
-                `;
-            }
-            
             // Clear previous scanner
             if (html5QrcodeScanner) {
                 html5QrcodeScanner.clear().catch(error => {
@@ -335,67 +313,21 @@
                 });
             }
 
-            // Optimize scanner settings untuk device
-            const scannerConfig = {
-                fps: isMobileDevice ? 15 : 10,
-                qrbox: isMobileDevice ? { width: 250, height: 250 } : { width: 200, height: 200 },
-                aspectRatio: 1.0,
-                showTorchButtonIfSupported: true,
-                showZoomSliderIfSupported: true
-            };
-
-            console.log("🎯 Scanner config:", scannerConfig);
-            
-            // Start new scanner
+            // Start new scanner with SMALL size
             html5QrcodeScanner = new Html5QrcodeScanner(
                 "qr-reader-small", 
-                scannerConfig,
+                { 
+                    fps: 10, 
+                    qrbox: { 
+                        width: 200,   // Small box size
+                        height: 200 
+                    },
+                    aspectRatio: 1.0
+                },
                 false
             );
             
-            // MULA SCAN SECARA AUTOMATIK
-            html5QrcodeScanner.render(
-                onScanSuccess, 
-                function(error) {
-                    console.error("QR Scanner error:", error);
-                    
-                    // Jika permission denied
-                    if (error && (error.includes("permission") || error.includes("NotAllowedError") || error.includes("NotReadableError"))) {
-                        if (qrReaderDiv) {
-                            qrReaderDiv.innerHTML = `
-                                <div style="text-align: center; padding: 20px; color: red;">
-                                    <i class="fas fa-video-slash fa-2x"></i>
-                                    <p>Camera access needed</p>
-                                    <p style="font-size: 12px;">Please allow camera access in your browser</p>
-                                    <button class="action-btn" onclick="startCameraScan()" style="margin-top: 10px;">
-                                        <i class="fas fa-redo"></i> Try Again
-                                    </button>
-                                </div>
-                            `;
-                        }
-                    } else if (error && error.includes("NotFoundError")) {
-                        if (qrReaderDiv) {
-                            qrReaderDiv.innerHTML = `
-                                <div style="text-align: center; padding: 20px; color: orange;">
-                                    <i class="fas fa-camera-slash fa-2x"></i>
-                                    <p>No camera found</p>
-                                    <p style="font-size: 12px;">Try scanning from file instead</p>
-                                </div>
-                            `;
-                        }
-                    }
-                }
-            );
-            
-            // Focus pada scanner area untuk mobile
-            if (isMobileDevice) {
-                setTimeout(() => {
-                    const scannerElement = document.getElementById('qr-reader-small');
-                    if (scannerElement) {
-                        scannerElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    }
-                }, 300);
-            }
+            html5QrcodeScanner.render(onScanSuccess);
         }
 
         // Stop scanner function
@@ -417,6 +349,11 @@
             console.log("🔍 Analyzing QR content:", decodedText);
             
             const text = decodedText.trim().toLowerCase();
+            
+            // Debug function
+            function debugDetection(rule, found) {
+                console.log(`Rule ${rule}: ${found ? 'MATCHED' : 'NOT MATCHED'}`);
+            }
             
             // RULE #1: Check for MPRV by TBE prefix (HIGHEST PRIORITY)
             if (text.includes('tbe')) {
@@ -593,36 +530,22 @@
             // 2. STOP SCANNER
             stopScanner();
             
-            // 3. Beri feedback untuk mobile
-            const qrReaderDiv = document.getElementById('qr-reader-small');
-            if (qrReaderDiv && isMobileDevice) {
-                qrReaderDiv.innerHTML = `
-                    <div style="text-align: center; padding: 20px; color: green;">
-                        <i class="fas fa-check-circle fa-2x"></i>
-                        <p>QR Code detected!</p>
-                        <p style="font-size: 12px;">Processing...</p>
-                    </div>
-                `;
+            // 3. PROCESS BERDASARKAN JENIS
+            if (qrType === 'hose') {
+                processHoseQR(decodedText);
+            } else if (qrType === 'scba') {
+                processScbaQR(decodedText);
+            } else if (qrType === 'vehicle') {
+                processVehicleQR(decodedText);
+            } else if (qrType === 'ambulance') {
+                processAmbulanceQR(decodedText);
+            } else if (qrType === 'mprv') {
+                processMprvQR(decodedText);
+            } else if (qrType === 'rsv') {
+                processRsvQR(decodedText);
+            } else {
+                processRadioQR(decodedText);
             }
-            
-            // 4. PROCESS BERDASARKAN JENIS
-            setTimeout(() => {
-                if (qrType === 'hose') {
-                    processHoseQR(decodedText);
-                } else if (qrType === 'scba') {
-                    processScbaQR(decodedText);
-                } else if (qrType === 'vehicle') {
-                    processVehicleQR(decodedText);
-                } else if (qrType === 'ambulance') {
-                    processAmbulanceQR(decodedText);
-                } else if (qrType === 'mprv') {
-                    processMprvQR(decodedText);
-                } else if (qrType === 'rsv') {
-                    processRsvQR(decodedText);
-                } else {
-                    processRadioQR(decodedText);
-                }
-            }, 500);
         }
 
         // Function khusus untuk process HOSE QR
@@ -1116,27 +1039,6 @@
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
-        }
-        
-        /* Mobile-friendly adjustments */
-        @media (max-width: 768px) {
-            .scanner-header {
-                flex-direction: column;
-                gap: 10px;
-            }
-            
-            .scanner-controls {
-                width: 100%;
-                display: flex;
-                justify-content: space-between;
-            }
-            
-            .action-btn {
-                flex: 1;
-                margin: 0 5px;
-                padding: 12px;
-                font-size: 14px;
-            }
         }
     </style>
 </body>
