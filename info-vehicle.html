@@ -9,91 +9,509 @@
     <link rel="stylesheet" href="vehicle.css">
     <!-- NEW: Vehicle Report CSS -->
     <link rel="stylesheet" href="vehicle-report.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
     <style>
-        /* TAMBAHAN STYLE UNTUK HEADER ALIGNMENT */
-        .inspector-info-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 20px;
-            flex-wrap: wrap;
+        /* EQUIPMENT MODAL STYLES */
+        .equipment-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
             width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            opacity: 0;
+            transition: opacity 0.3s ease;
         }
-        
-        .inspector-shift-info {
+
+        .equipment-modal-content {
+            background: white;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 800px;
+            max-height: 85vh;
+            overflow: hidden;
+            transform: translateY(-20px);
+            transition: transform 0.3s ease;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .equipment-modal-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .equipment-modal-header h3 {
+            margin: 0;
+            font-size: 18px;
             display: flex;
             align-items: center;
-            gap: 20px;
-            flex-wrap: wrap;
-            flex: 1;
+            gap: 10px;
         }
-        
-        .inspector-shift-info span {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            color: var(--light-text);
-            font-size: 14px;
-            white-space: nowrap;
+
+        .equipment-modal-header .modal-close {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            line-height: 1;
         }
-        
-        .inspector-shift-info i {
-            color: var(--primary-color);
+
+        .equipment-modal-body {
+            padding: 20px;
+            max-height: 65vh;
+            overflow-y: auto;
         }
-        
-        .mini-export-btn {
-            padding: 8px 16px;
-            background: #d9534f;
+
+        .equipment-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+        }
+
+        .equipment-table th {
+            background-color: #f8f9fa;
+            padding: 12px 10px;
+            text-align: left;
+            border-bottom: 2px solid #dee2e6;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .equipment-table td {
+            padding: 12px 10px;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .equipment-table tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        .equipment-table .item-checkbox {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+
+        .equipment-modal-footer {
+            padding: 15px 20px;
+            background: #f8f9fa;
+            text-align: right;
+            border-top: 1px solid #dee2e6;
+        }
+
+        .btn-close {
+            background: #6c757d;
             color: white;
             border: none;
-            border-radius: 6px;
+            padding: 8px 20px;
+            border-radius: 5px;
             cursor: pointer;
-            font-size: 14px;
+            font-weight: 500;
+            transition: background 0.2s;
+        }
+
+        .btn-close:hover {
+            background: #5a6268;
+        }
+
+        /* Equipment Inspection Menu Styles */
+        .inspection-table-section h5 {
+            margin-bottom: 15px;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .equipment-menu-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 15px;
+            margin-top: 10px;
+        }
+
+        .equipment-category-card {
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 20px 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            min-height: 100px;
+            justify-content: center;
+        }
+
+        .equipment-category-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            border-color: #667eea;
+            background: linear-gradient(135deg, #f8f9ff 0%, #f5f0ff 100%);
+        }
+
+        .equipment-category-card i {
+            font-size: 28px;
+            color: #667eea;
+        }
+
+        .category-name {
             font-weight: 600;
+            color: #333;
+            font-size: 14px;
+            line-height: 1.3;
+        }
+
+        /* Checkbox styling for modal */
+        .checkbox-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .checkbox-container input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        /* Equipment quantity input */
+        .equipment-qty-input {
+            width: 60px;
+            padding: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            text-align: center;
+        }
+
+        /* Equipment Summary Grid untuk RSV */
+        .equipment-summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .equipment-category-summary {
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .equipment-category-summary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            border-color: #667eea;
+        }
+
+        .category-header {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .category-header i {
+            font-size: 20px;
+            color: #667eea;
+        }
+
+        .category-name {
+            font-weight: 600;
+            color: #333;
+            font-size: 14px;
+        }
+
+        .category-stats {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            margin: 10px 0;
+        }
+
+        .category-stats .count {
+            font-weight: 700;
+            font-size: 18px;
+            color: #333;
+        }
+
+        .category-stats .percentage {
+            font-weight: 600;
+            font-size: 14px;
+            color: #38a169;
+            background: #c6f6d5;
+            padding: 3px 8px;
+            border-radius: 20px;
+        }
+
+        .view-details-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 500;
+            transition: background 0.2s;
+            width: 100%;
+        }
+
+        .view-details-btn:hover {
+            background: #5a67d8;
+        }
+
+        /* Status badges */
+        .status-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+            min-width: 70px;
+            text-align: center;
+        }
+
+        .status-ok {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status-broken {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .status-warning {
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+
+        .textfield-value {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .textfield-empty {
+            background-color: #f8f9fa;
+            color: #6c757d;
+            border: 1px solid #dee2e6;
+        }
+
+        /* Status badge for equipment */
+        .equipment-status {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+            min-width: 70px;
+            justify-content: center;
+        }
+
+        .status-found {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status-not-found {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .equipment-qty-display {
+            font-weight: 600;
+            color: #495057;
+        }
+
+        /* NEW: Export actions styling */
+        .export-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .view-pdf-btn {
+            background: #007bff !important;
+        }
+        
+        .view-pdf-btn:hover {
+            background: #0056b3 !important;
+        }
+        
+        .modal-actions {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        
+        .modal-actions button {
+            padding: 10px 20px;
+            font-size: 14px;
+            cursor: pointer;
+            border-radius: 5px;
+            border: none;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        /* Medical header styling */
+        .medical-header-info {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-left: 4px solid #667eea;
+        }
+
+        .medical-personnel {
+            display: flex;
+            gap: 20px;
+        }
+
+        .medical-personnel span {
             display: flex;
             align-items: center;
             gap: 8px;
-            transition: all 0.3s ease;
-            white-space: nowrap;
+            font-size: 14px;
+            color: #495057;
         }
-        
-        .mini-export-btn:hover {
-            background: #c9302c;
+
+        .medical-personnel i {
+            color: #667eea;
+            width: 20px;
         }
-        
-        /* RESPONSIVE DESIGN */
+
+        .medical-timestamp {
+            font-size: 14px;
+            color: #6c757d;
+        }
+
+        .medical-timestamp i {
+            margin-right: 8px;
+        }
+
+        .vehicle-subtitle {
+            display: flex;
+            gap: 15px;
+            margin-top: 5px;
+        }
+
+        .vehicle-subtitle span {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 14px;
+            color: #6c757d;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+        }
+
+        .alert-warning {
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+
+        .no-inspection-data {
+            text-align: center;
+            padding: 40px 20px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .no-inspection-data i {
+            font-size: 50px;
+            color: #6c757d;
+            margin-bottom: 20px;
+        }
+
+        .no-inspection-data h4 {
+            color: #495057;
+            margin-bottom: 10px;
+        }
+
+        .no-inspection-data p {
+            color: #6c757d;
+            margin-bottom: 5px;
+        }
+
+        .help-text {
+            font-size: 14px;
+            color: #868e96;
+            font-style: italic;
+        }
+
         @media (max-width: 768px) {
-            .inspector-info-header {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 10px;
+            .equipment-menu-grid {
+                grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
             }
             
-            .inspector-shift-info {
-                width: 100%;
-                justify-content: space-between;
+            .equipment-modal-content {
+                width: 95%;
+                max-height: 90vh;
             }
             
-            .mini-export-btn {
-                width: 100%;
-                justify-content: center;
-            }
-        }
-        
-        @media (max-width: 480px) {
-            .inspector-shift-info {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 10px;
-            }
-            
-            .inspector-shift-info span {
+            .equipment-table th,
+            .equipment-table td {
+                padding: 8px 6px;
                 font-size: 13px;
+            }
+            
+            .equipment-summary-grid {
+                grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            }
+            
+            .export-actions {
+                flex-direction: column;
+                gap: 5px;
+            }
+            
+            .medical-header-info {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+            
+            .medical-personnel {
+                flex-direction: column;
+                gap: 10px;
             }
         }
     </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
 </head>
 <body>
     <div class="container">
@@ -106,8 +524,8 @@
             <div class="user-profile-sidebar">
                 <div class="sidebar-avatar">G</div>
                 <div class="sidebar-user-info">
-                    <h3>Admin User</h3>
-                    <p>Administrator</p>
+                    <h3>Admin</h3>
+                    <p>Admin Access</p>
                 </div>
             </div>
             
@@ -118,7 +536,7 @@
                 </li>
                 <li class="nav-item" onclick="navigateTo('admin-info.html')">
                     <i class="fas fa-qrcode"></i>
-                    <span>Inspection Data</span>
+                    <span>Inspection</span>
                 </li>
                 <li class="nav-item active">
                     <i class="fas fa-car"></i>
@@ -130,7 +548,7 @@
                 </li>
                 <li class="nav-item" onclick="navigateTo('index.html')">
                     <i class="fas fa-arrow-left"></i>
-                    <span>Logout</span>
+                    <span>Back</span>
                 </li>
             </ul>
         </div>
@@ -140,9 +558,9 @@
             <div class="header">
                 <div class="date" id="currentDate">Monday, 02 March 2020</div>
                 <div class="user-info">
-                    <div class="user-avatar">A</div>
+                    <div class="user-avatar">G</div>
                     <div>
-                        <div>Admin</div>
+                        <div>Guest</div>
                     </div>
                 </div>
             </div>
@@ -211,10 +629,11 @@
         // Hardcoded ambulance types
         const VEHICLE_AMBULANCE_TYPES = {
             'TDC 5994': 'AB4',
-            'CCF 6941': 'AB1'
+            'CCF 6941': 'AB1',
+            'CCF6941': 'AB1'
         };
 
-        // Inspection items templates from scan pages (DITAMBAH QUANTITY)
+        // Vehicle inspection items template (untuk semua vehicle types)
         const VEHICLE_INSPECTION_ITEMS = [
             { name: "FUEL LEVEL", qty: "1" },
             { name: "RADIATOR WATER LEVEL", qty: "1" },
@@ -234,6 +653,61 @@
             { name: "MILLAGE / ODOMETER", qty: "1" }
         ];
 
+        // ========== TAMBAHAN: Fire Truck Inspection Items ==========
+        // Fire Truck Vehicle Inspection Items
+        const FIRE_TRUCK_VEHICLE_INSPECTION_ITEMS = [
+            { name: "FUEL LEVEL", qty: "1" },
+            { name: "RADIATOR WATER LEVEL", qty: "1" },
+            { name: "ENGINE OIL", qty: "1" },
+            { name: "POWER STEERING OIL", qty: "1" },
+            { name: "BRAKE OIL", qty: "1" },
+            { name: "WIPER WATER", qty: "1" },
+            { name: "BATTERY WATER LEVEL", qty: "1" },
+            { name: "CONDITION / TYRE PRESSURE", qty: "4" },
+            { name: "WIPER", qty: "2" },
+            { name: "OVERALL LIGHTS", qty: "1" },
+            { name: "BEACON LIGHT", qty: "1" },
+            { name: "MOBILE RADIO SET TEST", qty: "1" },
+            { name: "ROUTE RUNNING", qty: "1" },
+            { name: "BRAKE CONDITION", qty: "1" },
+            { name: "VEHICLE CLEANLINESS", qty: "1" },
+            { name: "BOMBA CERTIFICATE", qty: "1" },
+            { name: "MILEAGE / ODOMETER", qty: "1" },
+            { name: "WATER TANK LEVEL", qty: "1" },
+            { name: "FOAM TANK LEVEL", qty: "1" },
+            { name: "PUMP OPERATION TEST", qty: "1" }
+        ];
+
+        // Fire Truck Equipment Inspection Items
+        const FIRE_TRUCK_EQUIPMENT_INSPECTION_ITEMS = [
+            { name: "FIRE HOSE 5\"", qty: "12" },
+            { name: "FIRE HOSE 3\"", qty: "6" },
+            { name: "FIRE HOSE 2.5\"", qty: "10" },
+            { name: "FIRE HOSE 1.5\"", qty: "6" },
+            { name: "NOZZLE 125 GPM", qty: "2" },
+            { name: "PM 1000 GPM", qty: "1" },
+            { name: "PM 500 GPM", qty: "2" },
+            { name: "FOAM NOZZLE 100 GPM", qty: "1" },
+            { name: "WATER CURTAIN 360°", qty: "4" },
+            { name: "HYDRAULIC RESCUE TOOLS", qty: "1" },
+            { name: "SCBA SET", qty: "4" },
+            { name: "BREATHING AIR CYLINDERS", qty: "8" },
+            { name: "FIRE EXTINGUISHER", qty: "2" },
+            { name: "FIRST AID KIT", qty: "1" },
+            { name: "FIRE AXE", qty: "2" },
+            { name: "CROWBAR", qty: "2" },
+            { name: "FIRE BEATER", qty: "2" },
+            { name: "RESCUE ROPE", qty: "2" },
+            { name: "SAFETY HARNESS", qty: "2" },
+            { name: "PORTABLE LIGHT", qty: "2" },
+            { name: "RADIO COMMUNICATION", qty: "8" },
+            { name: "FIRE SUIT", qty: "4" },
+            { name: "HELMET WITH VISOR", qty: "4" },
+            { name: "FIRE BOOTS", qty: "4" },
+            { name: "FIRE GLOVES", qty: "4" }
+        ];
+
+        // Medical inspection items untuk Ambulance (AB1 dan AB4)
         const MEDICAL_INSPECTION_ITEMS_AB1 = [
             { name: "STRETCHER (FOLDABLE)", qty: "1" },
             { name: "STRETCHER (WHEEL / TROLLERY)", qty: "1" },
@@ -287,11 +761,97 @@
             { name: "CARDIAC MONITOR *", qty: "1" }
         ];
 
+        // RSV Equipment Inspection Items
+        const RSV_EQUIPMENT_INSPECTION_ITEMS = [
+            { name: "AIR BAG", qty: "2" },
+            { name: "CERVICAL COLLAR", qty: "2" },
+            { name: "BURN FREE SET", qty: "1" },
+            { name: "OXYGEN BOTTLE 15L", qty: "1" },
+            { name: "ABSORBENT UNDER PAD", qty: "1" },
+            { name: "MEDICAL OXYGEN (PORTABLE) – MIN 25%", qty: "1" },
+            { name: "REBREATHER MASK", qty: "1" },
+            { name: "LARYNGOSCOPE", qty: "1" },
+            { name: "ENDOTRACHEAL TUBE", qty: "1" },
+            { name: "SPINAL BOARD / SCOPE STRETCHER", qty: "1" },
+            { name: "TRACTION SPLINT (HARE TRACTION)", qty: "1" },
+            { name: "TYVEX", qty: "5" },
+            { name: "FRACTURE IMMOBILIZER – HAND & LEG", qty: "1" },
+            { name: "TRANSFER PATIENT SHEET", qty: "1" },
+            { name: "FIRST AID BAG (c/w SET)", qty: "1" }
+        ];
+
+        // RSV Categories Equipment Items (detailed per category)
+        const RSV_CATEGORY_EQUIPMENT = {
+            'BAG ATAS A1': [
+                { id: 'A1-001', name: 'Carabinars', qty: '5' },
+                { id: 'A1-002', name: 'Webbing', qty: '3' },
+                { id: 'A1-003', name: 'Brake Barrack', qty: '1' },
+                { id: 'A1-004', name: 'Figure of Eight', qty: '1' },
+                { id: 'A1-005', name: 'Gibbs', qty: '1' },
+                { id: 'A1-006', name: 'Single Pulley', qty: '1' },
+                { id: 'A1-007', name: 'Tandem Pulley', qty: '1' },
+                { id: 'A1-008', name: 'Anchor Rope', qty: '1' },
+                { id: 'A1-009', name: 'Stopper', qty: '2' }
+            ],
+            'BAG ATAS A2': [
+                { id: 'A2-001', name: 'Carabinars', qty: '5' },
+                { id: 'A2-002', name: 'Anchor Plate', qty: '1' },
+                { id: 'A2-003', name: 'Anchor Strap (Black)', qty: '2' },
+                { id: 'A2-004', name: 'Figure of Eight', qty: '1' },
+                { id: 'A2-005', name: 'Webbing', qty: '1' },
+                { id: 'A2-006', name: 'Double Pulley', qty: '1' },
+                { id: 'A2-007', name: 'Tandem Pulley', qty: '1' },
+                { id: 'A2-008', name: 'Anchor Rope', qty: '1' },
+                { id: 'A2-009', name: 'Pull Gibbs', qty: '1' }
+            ],
+            'BAG BAWAH A3': [
+                { id: 'A3-001', name: 'Carabinars', qty: '5' },
+                { id: 'A3-002', name: 'Juma', qty: '2' },
+                { id: 'A3-003', name: 'Anchor / Pick of Strap', qty: '1' },
+                { id: 'A3-004', name: 'Figure of Eight', qty: '1' },
+                { id: 'A3-005', name: 'Webbing', qty: '1' },
+                { id: 'A3-006', name: 'Double Pulley', qty: '1' },
+                { id: 'A3-007', name: 'Gibbs', qty: '1' },
+                { id: 'A3-008', name: 'Single Pulley', qty: '3' },
+                { id: 'A3-009', name: 'Pull Gibbs', qty: '1' }
+            ],
+            'ROPES BAG': [
+                { id: 'R-001', name: '12mm x 200m (Blue)', qty: '1' },
+                { id: 'R-002', name: '12mm x 200m (Yellow)', qty: '1' },
+                { id: 'R-003', name: '9mm x 200m (Orange)', qty: '1' },
+                { id: 'R-004', name: '12mm x 50m (Blue)', qty: '1' },
+                { id: 'R-005', name: '12mm x 50m (Red)', qty: '1' },
+                { id: 'R-006', name: '12mm x 50m (White)', qty: '1' },
+                { id: 'R-007', name: '12mm x 5m (Blue)', qty: '1' }
+            ],
+            'OTHER': [
+                { id: 'O-001', name: 'Rescue Harness', qty: '4' },
+                { id: 'O-002', name: 'Glove (Black/Yellow)', qty: '5' },
+                { id: 'O-003', name: 'Paraguard Stretcher', qty: '1' },
+                { id: 'O-004', name: 'Rescue Helmet', qty: '9' },
+                { id: 'O-005', name: 'Anchor Plate', qty: '1' },
+                { id: 'O-006', name: 'Stopper', qty: '2' },
+                { id: 'O-007', name: 'Webbing', qty: '3' },
+                { id: 'O-008', name: 'Ethrier', qty: '1' },
+                { id: 'O-009', name: 'Carabinars', qty: '6' },
+                { id: 'O-010', name: 'Figure of Eight', qty: '2' },
+                { id: 'O-011', name: 'Brake Barrack', qty: '1' },
+                { id: 'O-012', name: 'Single Pulley', qty: '1' },
+                { id: 'O-013', name: 'Prusik', qty: '1' }
+            ]
+        };
+
         window.addEventListener('load', function() {
             console.log("🚀 Loading Public Vehicle Inspection System...");
             initializeFirebase();
             updateCurrentDate();
             showVehicleTypesPage();
+            
+            // Debug: Check if Firebase is loaded
+            setTimeout(() => {
+                console.log("Firebase initialized:", !!app);
+                console.log("Firestore initialized:", !!db);
+            }, 1000);
         });
 
         function initializeFirebase() {
@@ -375,9 +935,9 @@
                         data.id = doc.id;
                         allVehiclesData.push(data);
                         
-                        if (data.vehicleType) {
-                            vehicleTypes.add(data.vehicleType);
-                        }
+                        // Use vehicleType or ambulanceType
+                        const type = data.vehicleType || 'Ambulance';
+                        vehicleTypes.add(type);
                     });
 
                     document.getElementById('loadingMessage').style.display = 'none';
@@ -393,13 +953,14 @@
                         'Ambulance': '🚑',
                         'MPRV': '🚙',
                         'RSV': '🚐',
+                        'Rapid Support Vehicle': '🚐',
                         'Truck': '🚚',
                         'Car': '🚗',
                         'Van': '🚐'
                     };
                     
                     vehicleTypes.forEach(type => {
-                        const count = allVehiclesData.filter(v => v.vehicleType === type).length;
+                        const count = allVehiclesData.filter(v => v.vehicleType === type || (!v.vehicleType && type === 'Ambulance')).length;
                         const icon = typeIcons[type] || '🚗';
                         
                         html += `
@@ -478,7 +1039,18 @@
 
         function loadVehicleListFromFirebase() {
             // Filter vehicles by current type
-            const vehicles = allVehiclesData.filter(v => v.vehicleType === currentVehicleType);
+            let vehicles = [];
+            
+            if (currentVehicleType === 'Ambulance') {
+                // Untuk ambulance, include semua data yang ada ambulanceType atau vehicleType Ambulance
+                vehicles = allVehiclesData.filter(v => 
+                    v.vehicleType === 'Ambulance' || 
+                    v.ambulanceType || 
+                    (!v.vehicleType && v.ambulanceNumber)
+                );
+            } else {
+                vehicles = allVehiclesData.filter(v => v.vehicleType === currentVehicleType);
+            }
             
             if (vehicles.length === 0) {
                 document.getElementById('loadingMessage').style.display = 'none';
@@ -496,7 +1068,8 @@
             vehicles.forEach(vehicle => {
                 const status = vehicle.status || 'Active';
                 const statusClass = getStatusClass(status);
-                const ambulanceType = VEHICLE_AMBULANCE_TYPES[vehicle.vehicleNumber] || '';
+                const vehicleNumber = vehicle.vehicleNumber || vehicle.ambulanceNumber || 'N/A';
+                const ambulanceType = VEHICLE_AMBULANCE_TYPES[vehicleNumber] || vehicle.ambulanceType || vehicle.manufacturer || '';
                 
                 let badge = '';
                 if (ambulanceType) {
@@ -505,8 +1078,8 @@
                 
                 html += `
                     <div class="vehicle-card" onclick="selectVehicle('${vehicle.id}')">
-                        <div class="vehicle-number">${vehicle.vehicleNumber || 'N/A'} ${badge}</div>
-                        <div class="vehicle-type">${vehicle.vehicleType || 'N/A'}</div>
+                        <div class="vehicle-number">${vehicleNumber} ${badge}</div>
+                        <div class="vehicle-type">${vehicle.vehicleType || 'Ambulance'}</div>
                         <div class="vehicle-status ${statusClass}">${status}</div>
                     </div>
                 `;
@@ -542,14 +1115,17 @@
             
             currentVehicleData = vehicle;
             
-            document.getElementById('pageTitle').textContent = `${vehicle.vehicleNumber || 'N/A'} - Inspection Records`;
-            document.getElementById('pageDescription').textContent = `${vehicle.vehicleType} - Daily inspection history`;
+            const vehicleNumber = vehicle.vehicleNumber || vehicle.ambulanceNumber || 'N/A';
+            
+            document.getElementById('pageTitle').textContent = `${vehicleNumber} - Inspection Records`;
+            document.getElementById('pageDescription').textContent = `${vehicle.vehicleType || 'Ambulance'} - Daily inspection history`;
             
             showVehicleDetailPage(vehicle);
         }
 
         function showVehicleDetailPage(vehicle) {
-            const ambulanceType = VEHICLE_AMBULANCE_TYPES[vehicle.vehicleNumber] || '';
+            const vehicleNumber = vehicle.vehicleNumber || vehicle.ambulanceNumber || 'N/A';
+            const ambulanceType = VEHICLE_AMBULANCE_TYPES[vehicleNumber] || vehicle.ambulanceType || vehicle.manufacturer || '';
             const today = new Date().toISOString().split('T')[0];
             currentSelectedDate = today;
             
@@ -567,11 +1143,11 @@
                         <div class="vehicle-info-row">
                             <div class="info-item">
                                 <div class="info-label">VEHICLE NUMBER</div>
-                                <div class="info-value">${vehicle.vehicleNumber || 'N/A'}</div>
+                                <div class="info-value">${vehicleNumber}</div>
                             </div>
                             <div class="info-item">
                                 <div class="info-label">VEHICLE TYPE</div>
-                                <div class="info-value">${vehicle.vehicleType || 'N/A'}</div>
+                                <div class="info-value">${vehicle.vehicleType || 'Ambulance'}</div>
                             </div>
                             ${ambulanceType ? `
                                 <div class="info-item">
@@ -642,14 +1218,14 @@
             loadInspectionDataForDate(today);
         }
 
-        // ============= LOAD INSPECTION DATA FOR SELECTED DATE =============
+        // ============= FIXED: LOAD INSPECTION DATA =============
         function loadInspectionDataForDate(dateStr) {
             if (!db || !currentVehicleId) {
                 showNoInspectionData("Firebase not initialized");
                 return;
             }
 
-            console.log(`📡 Loading inspection data for ${dateStr}`);
+            console.log(`📡 Loading inspection data for ${dateStr} - Vehicle ID: ${currentVehicleId}`);
             
             const container = document.getElementById('inspectionDataTable');
             container.innerHTML = `
@@ -670,18 +1246,55 @@
                     }
                     
                     const vehicleData = doc.data();
-                    const dailyData = vehicleData[dailyInspectionKey];
+                    console.log("✅ Vehicle data found:", vehicleData);
+                    
+                    // CEK STRUKTUR DATA
+                    console.log("🔍 Checking data structure...");
+                    console.log("- Daily key exists:", dailyInspectionKey in vehicleData);
+                    console.log("- Vehicle data keys:", Object.keys(vehicleData));
+                    
+                    // Check multiple possible locations for daily data
+                    let dailyData = vehicleData[dailyInspectionKey];
+                    
+                    // If not found in vehicleData, check other possible structures
+                    if (!dailyData) {
+                        console.log("⚠️ Daily data not found in root. Checking alternative structures...");
+                        
+                        // Check if data is nested differently
+                        if (vehicleData.inspections && vehicleData.inspections[dailyInspectionKey]) {
+                            dailyData = vehicleData.inspections[dailyInspectionKey];
+                            console.log("✅ Found in inspections object");
+                        }
+                        
+                        // Check for date-based key without "daily_" prefix
+                        const dateOnlyKey = dateStr;
+                        if (vehicleData[dateOnlyKey]) {
+                            dailyData = vehicleData[dateOnlyKey];
+                            console.log("✅ Found with date-only key");
+                        }
+                        
+                        // Check for timestamp-based structure
+                        const timestampKeys = Object.keys(vehicleData).filter(key => key.includes(dateStr));
+                        if (timestampKeys.length > 0) {
+                            dailyData = vehicleData[timestampKeys[0]];
+                            console.log("✅ Found in timestamp key:", timestampKeys[0]);
+                        }
+                    }
                     
                     if (!dailyData) {
                         showNoInspectionData(`No inspection records found for ${formatDate(new Date(dateStr))}`);
                         return;
                     }
                     
+                    console.log("✅ Daily data found:", dailyData);
+                    console.log("- inspection0800 exists:", !!dailyData.inspection0800);
+                    console.log("- inspection2000 exists:", !!dailyData.inspection2000);
+                    
                     const inspection0800 = dailyData.inspection0800;
                     const inspection2000 = dailyData.inspection2000;
                     
                     if (!inspection0800 && !inspection2000) {
-                        showNoInspectionData(`No inspection records found for ${formatDate(new Date(dateStr))}`);
+                        showNoInspectionData(`No inspection data for selected date`);
                         return;
                     }
                     
@@ -690,15 +1303,39 @@
                     
                 }).catch((error) => {
                     console.error('❌ Error loading inspection data:', error);
-                    showNoInspectionData("Error loading inspection data");
+                    showNoInspectionData("Error loading inspection data: " + error.message);
                 });
         }
 
         function displayInspectionDataTable(dateStr, inspection0800, inspection2000) {
             const container = document.getElementById('inspectionDataTable');
-            const ambulanceType = VEHICLE_AMBULANCE_TYPES[currentVehicleData.vehicleNumber] || '';
+            
+            // Get correct ambulance type from Firebase data
+            const vehicleNumber = currentVehicleData.vehicleNumber || currentVehicleData.ambulanceNumber || '';
+            const ambulanceType = VEHICLE_AMBULANCE_TYPES[vehicleNumber] || 
+                                 currentVehicleData.ambulanceType || 
+                                 currentVehicleData.manufacturer || '';
+            
+            const isFireTruck = currentVehicleType === 'Fire Truck' || 
+                               (currentVehicleData && currentVehicleData.vehicleType === 'Fire Truck');
+            
+            const isRSV = currentVehicleType === 'RSV' || 
+                         currentVehicleType === 'Rapid Support Vehicle' ||
+                         (currentVehicleData && currentVehicleData.vehicleType === 'Rapid Support Vehicle');
+            
+            const isAmbulance = currentVehicleType === 'Ambulance' || 
+                               (currentVehicleData && currentVehicleData.vehicleType === 'Ambulance') ||
+                               currentVehicleData.ambulanceType ||
+                               currentVehicleData.ambulanceNumber;
+            
+            const isMPRV = currentVehicleType === 'MPRV';
             const isAB4 = ambulanceType === 'AB4';
             const isAB1 = ambulanceType === 'AB1';
+            
+            console.log(`🔍 DEBUG: Vehicle Type: ${currentVehicleType}, Ambulance Type: ${ambulanceType}`);
+            console.log(`🔍 DEBUG: inspection0800:`, inspection0800);
+            console.log(`🔍 DEBUG: inspection2000:`, inspection2000);
+            console.log(`🔍 DEBUG: isAmbulance: ${isAmbulance}, isAB4: ${isAB4}, isAB1: ${isAB1}`);
             
             let html = '';
             
@@ -707,9 +1344,13 @@
                 <div class="report-actions">
                     <div class="report-header-info">
                         <h3><i class="fas fa-clipboard-list"></i> Inspection Report - ${formatDate(new Date(dateStr))}</h3>
+                        <div class="vehicle-subtitle">
+                            <span><i class="fas fa-car"></i> ${vehicleNumber || 'N/A'}</span>
+                            ${ambulanceType ? `<span><i class="fas fa-tag"></i> ${ambulanceType}</span>` : ''}
+                        </div>
                     </div>
                     <div class="export-buttons">
-                        <button class="export-btn pdf-export" onclick="exportFullPDF('${dateStr}')">
+                        <button class="export-btn pdf-export" onclick="confirmPDFExport('${dateStr}', '0800', true)">
                             <i class="fas fa-file-pdf"></i> Export Full Report PDF
                         </button>
                     </div>
@@ -737,12 +1378,12 @@
                 <div class="inspection-tables">
                     ${inspection0800 ? `
                         <div class="time-table active" id="table0800">
-                            ${generateInspectionTable(dateStr, '0800', inspection0800, isAB4, isAB1)}
+                            ${generateInspectionTable(dateStr, '0800', inspection0800, isAmbulance, isMPRV, isRSV, isFireTruck, isAB4, isAB1)}
                         </div>
                     ` : ''}
                     ${inspection2000 ? `
                         <div class="time-table ${!inspection0800 ? 'active' : ''}" id="table2000">
-                            ${generateInspectionTable(dateStr, '2000', inspection2000, isAB4, isAB1)}
+                            ${generateInspectionTable(dateStr, '2000', inspection2000, isAmbulance, isMPRV, isRSV, isFireTruck, isAB4, isAB1)}
                         </div>
                     ` : ''}
                 </div>
@@ -751,8 +1392,22 @@
             container.innerHTML = html;
         }
 
-        function generateInspectionTable(dateStr, timeSlot, inspectionData, isAB4, isAB1) {
-            const ambulanceType = isAB4 ? 'AB4' : (isAB1 ? 'AB1' : '');
+        // ============= GENERATE INSPECTION TABLE =============
+        function generateInspectionTable(dateStr, timeSlot, inspectionData, isAmbulance, isMPRV, isRSV, isFireTruck, isAB4, isAB1) {
+            const vehicleNumber = currentVehicleData.vehicleNumber || currentVehicleData.ambulanceNumber || '';
+            const ambulanceType = VEHICLE_AMBULANCE_TYPES[vehicleNumber] || 
+                                 currentVehicleData.ambulanceType || 
+                                 currentVehicleData.manufacturer || '';
+            
+            console.log(`🔍 generateInspectionTable for ${timeSlot}:`, {
+                hasInspectionData: !!inspectionData,
+                hasMedicalData: !!inspectionData?.medicalInspectionData,
+                medicalDataLength: inspectionData?.medicalInspectionData?.length || 0,
+                hasVehicleData: !!inspectionData?.vehicleInspectionData,
+                vehicleDataLength: inspectionData?.vehicleInspectionData?.length || 0,
+                isAmbulance: isAmbulance,
+                ambulanceType: ambulanceType
+            });
             
             let html = `
                 <div class="time-table-header">
@@ -762,19 +1417,27 @@
                             <span><i class="fas fa-user"></i> Inspector: ${inspectionData.inspectBy || 'N/A'}</span>
                             <span><i class="fas fa-clock"></i> Shift: ${inspectionData.shift || 'N/A'}</span>
                         </div>
-                        <button class="mini-export-btn" onclick="exportShiftPDF('${dateStr}', '${timeSlot}')">
-                            <i class="fas fa-file-pdf"></i> Export this report
-                        </button>
+                        <div class="export-actions">
+                            <button class="mini-export-btn view-pdf-btn" onclick="viewPDF('${dateStr}', '${timeSlot}')">
+                                <i class="fas fa-eye"></i> View PDF
+                            </button>
+                            <button class="mini-export-btn" onclick="confirmPDFExport('${dateStr}', '${timeSlot}', false)">
+                                <i class="fas fa-file-pdf"></i> Export PDF
+                            </button>
+                        </div>
                     </div>
                 </div>
             `;
             
-            // VEHICLE INSPECTION TABLE (DITAMBAH QUANTITY)
+            // ========== 1. VEHICLE INSPECTION TABLE ==========
             const vehicleData = inspectionData.vehicleInspectionData || [];
-            if (vehicleData.length > 0) {
+            const vehicleItems = isFireTruck ? FIRE_TRUCK_VEHICLE_INSPECTION_ITEMS : 
+                                (isAmbulance || isMPRV || isRSV) ? VEHICLE_INSPECTION_ITEMS : [];
+            
+            if (vehicleItems.length > 0) {
                 html += `
                     <div class="inspection-table-section">
-                        <h5><i class="fas fa-car"></i> Vehicle Inspection</h5>
+                        <h5><i class="fas fa-car"></i> Vehicle Inspection ${isFireTruck ? '(Fire Truck)' : ''}</h5>
                         <div class="table-responsive">
                             <table class="inspection-table">
                                 <thead>
@@ -789,19 +1452,21 @@
                                 <tbody>
                 `;
                 
-                VEHICLE_INSPECTION_ITEMS.forEach((item, index) => {
+                vehicleItems.forEach((item, index) => {
                     const itemData = vehicleData[index] || {};
-                    const isTextField = item.type === "textfield";
+                    const isTextField = item.name.includes("LEVEL") || 
+                                       item.name.includes("MILEAGE") || 
+                                       item.name.includes("ODOMETER");
                     let statusValue = '';
                     let statusClass = '';
                     
                     if (isTextField) {
-                        if (item.name === "FUEL LEVEL") {
-                            statusValue = itemData.value ? `${itemData.value}%` : 'NOT RECORDED';
-                            statusClass = itemData.value ? 'textfield-value' : 'textfield-empty';
-                        } else if (item.name === "MILLAGE / ODOMETER") {
-                            statusValue = itemData.value || 'NOT RECORDED';
-                            statusClass = itemData.value ? 'textfield-value' : 'textfield-empty';
+                        statusValue = itemData.value || 'NOT RECORDED';
+                        statusClass = itemData.value ? 'textfield-value' : 'textfield-empty';
+                        
+                        // Tambah % untuk FUEL LEVEL
+                        if (item.name === "FUEL LEVEL" && itemData.value && !itemData.value.includes("%")) {
+                            statusValue = itemData.value + "%";
                         }
                     } else {
                         statusValue = itemData.checked ? 'OK ✓' : 'BROKEN ✗';
@@ -827,95 +1492,215 @@
                 `;
             }
             
-            // MEDICAL RESPONSE INSPECTION TABLE (BUANG TYPE)
-            const medicalItems = isAB4 ? MEDICAL_INSPECTION_ITEMS_AB4 : 
-                              isAB1 ? MEDICAL_INSPECTION_ITEMS_AB1 : [];
-            const medicalData = inspectionData.medicalInspectionData || [];
-            
-            // Medical Response Inspection - ALWAYS SHOW
-            html += `
-                <div class="inspection-table-section">
-                    <h5><i class="fas fa-heartbeat"></i> Medical Response Inspection ${ambulanceType ? `(${ambulanceType})` : ''}</h5>
-                    <div class="table-responsive">
-                        <table class="inspection-table">
-                            <thead>
-                                <tr>
-                                    <th width="60">No.</th>
-                                    <th>Inspection Item</th>
-                                    <th width="80">Quantity</th>
-                                    <th width="120">Status/Value</th>
-                                    <th width="200">Remarks</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-            `;
-            
-            if (medicalItems.length > 0 && medicalData.length > 0) {
-                medicalItems.forEach((item, index) => {
-                    const itemData = medicalData[index] || {};
-                    let statusValue = '';
-                    let statusClass = '';
-                    
-                    // Check if it's a medical oxygen field
-                    if (item.name.includes("MEDICAL OXYGEN")) {
-                        // Check for oxygen percentage value
-                        const oxygenValue = parseInt(itemData.value) || 0;
-                        statusValue = itemData.value ? `${itemData.value}%` : 'NOT RECORDED';
-                        statusClass = itemData.value ? 'textfield-value' : 'textfield-empty';
-                        
-                        // Highlight if below minimum
-                        if (oxygenValue < 25) {
-                            statusClass = 'status-warning';
-                            statusValue = `${itemData.value}% ⚠️`;
-                        }
-                    } else {
-                        // Regular checkbox items
-                        statusValue = itemData.checked ? 'OK ✓' : 'BROKEN ✗';
-                        statusClass = itemData.checked ? 'status-ok' : 'status-broken';
-                    }
-                    
-                    html += `
-                        <tr>
-                            <td>${index + 1}</td>
-                            <td><strong>${item.name}</strong></td>
-                            <td>${item.qty}</td>
-                            <td><span class="status-badge ${statusClass}">${statusValue}</span></td>
-                            <td>${itemData.remarks || '-'}</td>
-                        </tr>
-                    `;
-                });
-            } else {
-                // If no medical data, show empty rows
-                const displayItems = medicalItems.length > 0 ? medicalItems : MEDICAL_INSPECTION_ITEMS_AB4;
+            // ========== 2. MEDICAL INSPECTION (AMBULANCE SAHAJA) ==========
+            if (isAmbulance) {
+                const medicalItems = isAB4 ? MEDICAL_INSPECTION_ITEMS_AB4 : 
+                                  isAB1 ? MEDICAL_INSPECTION_ITEMS_AB1 : [];
+                const medicalData = inspectionData.medicalInspectionData || [];
                 
-                displayItems.forEach((item, index) => {
-                    html += `
-                        <tr>
-                            <td>${index + 1}</td>
-                            <td><strong>${item.name}</strong></td>
-                            <td>${item.qty}</td>
-                            <td><span class="status-badge textfield-empty">NOT RECORDED</span></td>
-                            <td>-</td>
-                        </tr>
-                    `;
+                console.log(`🔍 Medical Inspection for ${timeSlot}:`, {
+                    medicalItemsCount: medicalItems.length,
+                    medicalData: medicalData,
+                    medicalDataLength: medicalData.length,
+                    ambulanceType: ambulanceType
                 });
+                
+                // DEBUG: Show raw medical data
+                console.log("📋 RAW MEDICAL DATA:", JSON.stringify(medicalData, null, 2));
+                
+                if (medicalData && medicalData.length > 0) {
+                    console.log(`✅ Medical data found with ${medicalData.length} items`);
+                    
+                    html += `
+                        <div class="inspection-table-section">
+                            <h5><i class="fas fa-heartbeat"></i> Medical Response Inspection ${ambulanceType ? `(${ambulanceType})` : ''}</h5>
+                            <div class="medical-header-info">
+                                <div class="medical-personnel">
+                                    <span><i class="fas fa-user-md"></i> Medic: ${inspectionData.medic || 'N/A'}</span>
+                                    <span><i class="fas fa-user-tie"></i> SWC/WC: ${inspectionData.swcwc || 'N/A'}</span>
+                                </div>
+                                <div class="medical-timestamp">
+                                    <span><i class="fas fa-clock"></i> ${inspectionData.timestamp ? formatTimeDisplay(inspectionData.timestamp) : 'N/A'}</span>
+                                </div>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="inspection-table">
+                                    <thead>
+                                        <tr>
+                                            <th width="60">No.</th>
+                                            <th>Inspection Item</th>
+                                            <th width="80">Quantity</th>
+                                            <th width="120">Status/Value</th>
+                                            <th width="200">Remarks</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                    `;
+                    
+                    medicalItems.forEach((item, index) => {
+                        const itemData = medicalData[index] || {};
+                        
+                        console.log(`🔍 Item ${index}: ${item.name}`, itemData);
+                        
+                        let statusValue = '';
+                        let statusClass = '';
+                        
+                        // Check if it's a medical oxygen field
+                        if (item.name.includes("MEDICAL OXYGEN")) {
+                            const oxygenValue = parseInt(itemData.value) || 0;
+                            statusValue = itemData.value ? `${itemData.value}%` : 'NOT RECORDED';
+                            statusClass = itemData.value ? 'textfield-value' : 'textfield-empty';
+                            
+                            if (oxygenValue < 25 && oxygenValue > 0) {
+                                statusClass = 'status-warning';
+                                statusValue = `${itemData.value}% ⚠️`;
+                            }
+                        } else {
+                            const isChecked = itemData.checked || false;
+                            statusValue = isChecked ? 'OK ✓' : 'BROKEN ✗';
+                            statusClass = isChecked ? 'status-ok' : 'status-broken';
+                        }
+                        
+                        html += `
+                            <tr>
+                                <td>${index + 1}</td>
+                                <td><strong>${item.name}</strong></td>
+                                <td>${item.qty}</td>
+                                <td><span class="status-badge ${statusClass}">${statusValue}</span></td>
+                                <td>${itemData.remarks || '-'}</td>
+                            </tr>
+                        `;
+                    });
+                    
+                    html += `
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    console.log(`⚠️ No medical data for ${timeSlot}, showing empty table`);
+                    html += `
+                        <div class="inspection-table-section">
+                            <h5><i class="fas fa-heartbeat"></i> Medical Response Inspection ${ambulanceType ? `(${ambulanceType})` : ''}</h5>
+                            <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle"></i> No medical inspection data recorded
+                            </div>
+                        </div>
+                    `;
+                }
             }
             
-            html += `
-                            </tbody>
-                        </table>
+            // ========== 3. EQUIPMENT INSPECTION (RSV SAHAJA) ==========
+            if (isRSV) {
+                const equipmentData = inspectionData.equipmentInspectionData || {};
+                
+                html += `
+                    <div class="inspection-table-section">
+                        <h5><i class="fas fa-folder-open"></i> Equipment Inspection Summary (RSV)</h5>
+                        <div class="equipment-summary-grid">
+                `;
+                
+                Object.keys(RSV_CATEGORY_EQUIPMENT).forEach(category => {
+                    const categoryItems = RSV_CATEGORY_EQUIPMENT[category];
+                    const categoryData = equipmentData[category] || {};
+                    const itemsData = categoryData.items || [];
+                    
+                    let foundCount = 0;
+                    if (itemsData.length > 0) {
+                        foundCount = itemsData.filter(item => item.inspected).length;
+                    }
+                    
+                    const totalCount = categoryItems.length;
+                    const percentage = totalCount > 0 ? Math.round((foundCount / totalCount) * 100) : 0;
+                    
+                    html += `
+                        <div class="equipment-category-summary">
+                            <div class="category-header">
+                                <i class="fas ${getCategoryIcon(category)}"></i>
+                                <span class="category-name">${category}</span>
+                            </div>
+                            <div class="category-stats">
+                                <span class="count">${foundCount}/${totalCount}</span>
+                                <span class="percentage">${percentage}%</span>
+                            </div>
+                            <button class="view-details-btn" onclick="viewEquipmentCategory('${category}', '${timeSlot}', '${dateStr}')">
+                                <i class="fas fa-eye"></i> View Details
+                            </button>
+                        </div>
+                    `;
+                });
+                
+                html += `
+                        </div>
                     </div>
-                </div>
-            `;
+                `;
+            }
             
-            // Additional info section
+            // ========== 4. EQUIPMENT INSPECTION (FIRE TRUCK SAHAJA) ==========
+            if (isFireTruck) {
+                const equipmentItems = FIRE_TRUCK_EQUIPMENT_INSPECTION_ITEMS;
+                const equipmentData = inspectionData.equipmentInspectionData || [];
+                
+                if (equipmentItems.length > 0) {
+                    html += `
+                        <div class="inspection-table-section">
+                            <h5><i class="fas fa-fire-extinguisher"></i> Equipment Inspection (Fire Truck)</h5>
+                            <div class="table-responsive">
+                                <table class="inspection-table">
+                                    <thead>
+                                        <tr>
+                                            <th width="60">No.</th>
+                                            <th>Equipment Item</th>
+                                            <th width="80">Required Qty</th>
+                                            <th width="120">Status</th>
+                                            <th width="200">Remarks</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                    `;
+                    
+                    equipmentItems.forEach((item, index) => {
+                        const itemData = equipmentData[index] || {};
+                        const statusValue = itemData.checked ? 'OK ✓' : 'BROKEN ✗';
+                        const statusClass = itemData.checked ? 'status-ok' : 'status-broken';
+                        
+                        html += `
+                            <tr>
+                                <td>${index + 1}</td>
+                                <td><strong>${item.name}</strong></td>
+                                <td>${item.qty}</td>
+                                <td><span class="status-badge ${statusClass}">${statusValue}</span></td>
+                                <td>${itemData.remarks || '-'}</td>
+                            </tr>
+                        `;
+                    });
+                    
+                    html += `
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    `;
+                }
+            }
+            
+            // ========== ADDITIONAL INFO SECTION ==========
             html += `
                 <div class="additional-info-section">
                     <div class="info-grid">
+            `;
+            
+            if (isAmbulance) {
+                html += `
                         <div class="info-card">
                             <div class="info-label"><i class="fas fa-user-md"></i> Medic</div>
                             <div class="info-value">${inspectionData.medic || 'N/A'}</div>
                         </div>
+                `;
+            }
+            
+            html += `
                         <div class="info-card">
                             <div class="info-label"><i class="fas fa-user-tie"></i> SWC/WC</div>
                             <div class="info-value">${inspectionData.swcwc || 'N/A'}</div>
@@ -925,21 +1710,35 @@
                             <div class="info-value">${inspectionData.timestamp ? formatTimeDisplay(inspectionData.timestamp) : 'N/A'}</div>
                         </div>
                     </div>
-                    
-                    ${inspectionData.remarks ? `
-                        <div class="remarks-section">
-                            <div class="info-label"><i class="fas fa-comment"></i> Remarks</div>
-                            <div class="remarks-content">${inspectionData.remarks}</div>
-                        </div>
-                    ` : ''}
-                </div>
             `;
+            
+            if (inspectionData.remarks) {
+                html += `
+                    <div class="remarks-section">
+                        <div class="info-label"><i class="fas fa-comment"></i> Remarks</div>
+                        <div class="remarks-content">${inspectionData.remarks}</div>
+                    </div>
+                `;
+            }
+            
+            html += `</div>`;
             
             return html;
         }
 
+        // Helper function untuk icons
+        function getCategoryIcon(category) {
+            const iconMap = {
+                'BAG ATAS A1': 'fa-briefcase',
+                'BAG ATAS A2': 'fa-briefcase',
+                'BAG BAWAH A3': 'fa-suitcase',
+                'ROPES BAG': 'fa-archive',
+                'OTHER': 'fa-box'
+            };
+            return iconMap[category] || 'fa-box';
+        }
+
         function switchTimeTab(timeSlot) {
-            // Update active tab
             document.querySelectorAll('.time-tab').forEach(tab => {
                 tab.classList.remove('active');
             });
@@ -963,16 +1762,15 @@
             `;
         }
 
-        // ============= EXPORT PDF FUNCTIONS =============
-        function exportShiftPDF(dateStr, timeSlot, inspectionData) {
+        // ============= RSV Equipment Modal =============
+        function viewEquipmentCategory(category, timeSlot, dateStr) {
             if (!currentVehicleId || !dateStr || !timeSlot) {
-                alert("Missing data for PDF generation!");
+                alert("Missing data to load equipment!");
                 return;
             }
+
+            console.log(`🔍 Loading equipment data for ${category} - ${timeSlot} - ${dateStr}`);
             
-            console.log(`📄 Generating PDF for ${dateStr} - ${timeSlot}`);
-            
-            // Get data from Firebase
             const dailyInspectionKey = `daily_${dateStr}`;
             
             db.collection('vehicles')
@@ -998,24 +1796,187 @@
                         return;
                     }
                     
-                    // Generate PDF
-                    generateShiftPDF(dateStr, timeSlot, inspectionData);
+                    const equipmentData = inspectionData.equipmentInspectionData || {};
+                    showEquipmentPopup(category, equipmentData, timeSlot, dateStr);
                     
                 }).catch((error) => {
-                    console.error('❌ Error loading data for PDF:', error);
-                    alert("Error loading data for PDF generation!");
+                    console.error('❌ Error loading equipment data:', error);
+                    alert("Error loading equipment data!");
                 });
         }
 
-        function exportFullPDF(dateStr) {
+        function showEquipmentPopup(category, equipmentData, timeSlot, dateStr) {
+            const categoryEquipment = RSV_CATEGORY_EQUIPMENT[category] || [];
+            const categoryData = equipmentData[category] || {};
+            const itemsData = categoryData.items || [];
+            
+            let html = `
+                <div class="equipment-modal-content">
+                    <div class="equipment-modal-header">
+                        <h3><i class="fas fa-folder-open"></i> ${category} - Equipment Items</h3>
+                        <span style="font-size: 12px; margin-left: 10px;">(${timeSlot} - ${dateStr})</span>
+                        <button class="modal-close" onclick="closeEquipmentModal()">&times;</button>
+                    </div>
+                    <div class="equipment-modal-body">
+                        <div class="table-responsive">
+                            <table class="equipment-table">
+                                <thead>
+                                    <tr>
+                                        <th width="40">No.</th>
+                                        <th>Equipment Item</th>
+                                        <th width="100">Required Qty</th>
+                                        <th width="100">Status</th>
+                                        <th width="100">Found Qty</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+            `;
+            
+            categoryEquipment.forEach((item, index) => {
+                let storedItem = null;
+                let foundQty = 0;
+                let isInspected = false;
+                
+                if (itemsData && itemsData.length > 0) {
+                    storedItem = itemsData.find(i => {
+                        if (i && i.id) {
+                            return i.id === item.id || 
+                                   (i.name && item.name && i.name.toLowerCase().includes(item.name.toLowerCase().split(' ')[0]));
+                        }
+                        return false;
+                    });
+                    
+                    if (storedItem) {
+                        foundQty = storedItem.inspectedQty || storedItem.value || 0;
+                        isInspected = storedItem.inspected || storedItem.checked || false;
+                    }
+                }
+                
+                const status = isInspected ? 'OK ✓' : 'BROKEN ✗';
+                const statusClass = isInspected ? 'status-ok' : 'status-broken';
+                
+                html += `
+                    <tr>
+                        <td>${index + 1}</td>
+                        <td>${item.name}</td>
+                        <td>${item.qty}</td>
+                        <td><span class="status-badge ${statusClass}">${status}</span></td>
+                        <td class="equipment-qty-display">${foundQty}</td>
+                    </tr>
+                `;
+            });
+            
+            html += `
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="equipment-modal-footer">
+                        <button class="btn-close" onclick="closeEquipmentModal()">Close</button>
+                    </div>
+                </div>
+            `;
+            
+            const modal = document.createElement('div');
+            modal.className = 'equipment-modal-overlay';
+            modal.id = 'equipmentModal';
+            modal.innerHTML = html;
+            document.body.appendChild(modal);
+            
+            setTimeout(() => {
+                modal.style.opacity = '1';
+                modal.querySelector('.equipment-modal-content').style.transform = 'translateY(0)';
+            }, 10);
+        }
+
+        function closeEquipmentModal() {
+            const modal = document.getElementById('equipmentModal');
+            if (modal) {
+                modal.querySelector('.equipment-modal-content').style.transform = 'translateY(-20px)';
+                modal.style.opacity = '0';
+                
+                setTimeout(() => {
+                    modal.remove();
+                }, 300);
+            }
+        }
+
+        // ============= Confirm PDF Export Popup =============
+        function confirmPDFExport(dateStr, timeSlot, isFullReport = false) {
+            const message = isFullReport 
+                ? `Download Full Inspection Report for ${formatDate(new Date(dateStr))}?` 
+                : `Download ${timeSlot === '0800' ? 'Day Shift' : 'Night Shift'} Report for ${formatDate(new Date(dateStr))}?`;
+            
+            const modal = document.createElement('div');
+            modal.className = 'equipment-modal-overlay';
+            modal.id = 'confirmPDFModal';
+            modal.innerHTML = `
+                <div class="equipment-modal-content" style="max-width: 500px;">
+                    <div class="equipment-modal-header">
+                        <h3><i class="fas fa-file-pdf"></i> Confirm PDF Download</h3>
+                        <button class="modal-close" onclick="closeConfirmModal()">&times;</button>
+                    </div>
+                    <div class="equipment-modal-body" style="text-align: center; padding: 30px;">
+                        <div style="font-size: 18px; margin-bottom: 20px;">
+                            ${message}
+                        </div>
+                        <div style="margin-bottom: 25px; color: #666;">
+                            <i class="fas fa-info-circle"></i> The PDF will be downloaded to your device.
+                        </div>
+                        <div class="modal-actions" style="display: flex; gap: 15px; justify-content: center;">
+                            <button class="btn-close" onclick="closeConfirmModal()" style="background: #6c757d;">No, Cancel</button>
+                            <button class="view-details-btn" onclick="proceedPDFExport('${dateStr}', '${timeSlot}', ${isFullReport})" style="background: #28a745;">
+                                Yes, Download PDF
+                            </button>
+                        </div>
+                        <div style="margin-top: 20px;">
+                            <button class="view-details-btn" onclick="viewPDF('${dateStr}', '${timeSlot}', ${isFullReport})" style="background: #007bff; margin-top: 10px;">
+                                <i class="fas fa-eye"></i> View PDF First (Preview)
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            
+            setTimeout(() => {
+                modal.style.opacity = '1';
+                modal.querySelector('.equipment-modal-content').style.transform = 'translateY(0)';
+            }, 10);
+        }
+
+        function closeConfirmModal() {
+            const modal = document.getElementById('confirmPDFModal');
+            if (modal) {
+                modal.querySelector('.equipment-modal-content').style.transform = 'translateY(-20px)';
+                modal.style.opacity = '0';
+                
+                setTimeout(() => {
+                    modal.remove();
+                }, 300);
+            }
+        }
+
+        function proceedPDFExport(dateStr, timeSlot, isFullReport) {
+            closeConfirmModal();
+            
+            if (isFullReport) {
+                exportFullPDF(dateStr);
+            } else {
+                exportShiftPDF(dateStr, timeSlot);
+            }
+        }
+
+        // ============= View PDF Function =============
+        function viewPDF(dateStr, timeSlot, isFullReport = false) {
             if (!currentVehicleId || !dateStr) {
                 alert("Missing data for PDF generation!");
                 return;
             }
             
-            console.log(`📄 Generating Full PDF for ${dateStr}`);
+            console.log(`👁️ Generating PDF preview for ${dateStr} - ${timeSlot}`);
             
-            // Get data from Firebase
             const dailyInspectionKey = `daily_${dateStr}`;
             
             db.collection('vehicles')
@@ -1035,7 +1996,210 @@
                         return;
                     }
                     
-                    // Generate PDF with both shifts
+                    if (isFullReport) {
+                        generatePDFPreview(dateStr, dailyData, true);
+                    } else {
+                        const inspectionData = timeSlot === '0800' ? dailyData.inspection0800 : dailyData.inspection2000;
+                        if (!inspectionData) {
+                            alert("No inspection data found for selected time slot!");
+                            return;
+                        }
+                        generatePDFPreview(dateStr, { inspectionData: inspectionData }, false, timeSlot);
+                    }
+                    
+                }).catch((error) => {
+                    console.error('❌ Error loading data for PDF preview:', error);
+                    alert("Error loading data for PDF preview!");
+                });
+        }
+
+        function generatePDFPreview(dateStr, data, isFullReport, timeSlot = null) {
+            try {
+                const { jsPDF } = window.jspdf;
+                
+                if (!jsPDF) {
+                    alert("PDF library not loaded. Please check your internet connection.");
+                    return;
+                }
+                
+                const doc = new jsPDF('p', 'mm', 'a4');
+                
+                if (isFullReport) {
+                    if (data.inspection0800) {
+                        generateShiftPDFContent(doc, dateStr, '0800', data.inspection0800, 1);
+                    }
+                    
+                    if (data.inspection2000) {
+                        doc.addPage();
+                        generateShiftPDFContent(doc, dateStr, '2000', data.inspection2000, 2);
+                    }
+                } else {
+                    generateShiftPDFContent(doc, dateStr, timeSlot, data.inspectionData, 1);
+                }
+                
+                const pdfBlob = doc.output('blob');
+                const pdfUrl = URL.createObjectURL(pdfBlob);
+                
+                // Open PDF in new tab
+                window.open(pdfUrl, '_blank');
+                
+                // Also show preview modal
+                showPDFPreviewModal(pdfUrl, dateStr, timeSlot, isFullReport);
+                
+            } catch (error) {
+                console.error('❌ Error generating PDF:', error);
+                alert("Error generating PDF: " + error.message);
+            }
+        }
+
+        function showPDFPreviewModal(pdfUrl, dateStr, timeSlot, isFullReport) {
+            const vehicleNumber = currentVehicleData.vehicleNumber || currentVehicleData.ambulanceNumber || 'N/A';
+            const fileName = isFullReport 
+                ? `Full_Inspection_${vehicleNumber}_${dateStr}.pdf`
+                : `Inspection_${vehicleNumber}_${dateStr}_${timeSlot}.pdf`;
+            
+            const modal = document.createElement('div');
+            modal.className = 'equipment-modal-overlay';
+            modal.id = 'pdfPreviewModal';
+            modal.innerHTML = `
+                <div class="equipment-modal-content" style="max-width: 700px; max-height: 90vh;">
+                    <div class="equipment-modal-header">
+                        <h3><i class="fas fa-file-pdf"></i> PDF Preview</h3>
+                        <span style="font-size: 12px;">${fileName}</span>
+                        <button class="modal-close" onclick="closePDFPreviewModal()">&times;</button>
+                    </div>
+                    <div class="equipment-modal-body" style="padding: 20px;">
+                        <div style="text-align: center; margin-bottom: 20px;">
+                            <div style="font-size: 16px; margin-bottom: 15px;">
+                                PDF is ready. You can:
+                            </div>
+                            
+                            <div style="display: flex; flex-direction: column; gap: 15px; align-items: center;">
+                                <div style="display: flex; gap: 15px;">
+                                    <button class="view-details-btn" onclick="downloadPDFFromPreview('${pdfUrl}', '${fileName}')" style="background: #28a745;">
+                                        <i class="fas fa-download"></i> Download PDF
+                                    </button>
+                                    <button class="btn-close" onclick="closePDFPreviewModal()">
+                                        Close Preview
+                                    </button>
+                                </div>
+                                
+                                <div style="font-size: 14px; color: #666; margin-top: 10px;">
+                                    <i class="fas fa-external-link-alt"></i> PDF has been opened in a new tab.
+                                    If it didn't open, <a href="${pdfUrl}" target="_blank" style="color: #007bff; text-decoration: underline;">click here</a>.
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div style="border-top: 1px solid #eee; padding-top: 20px; margin-top: 20px;">
+                            <div style="font-size: 14px; color: #666; text-align: center;">
+                                <i class="fas fa-info-circle"></i> You can also right-click on the PDF in the new tab and select "Save As" to download.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            
+            setTimeout(() => {
+                modal.style.opacity = '1';
+                modal.querySelector('.equipment-modal-content').style.transform = 'translateY(0)';
+            }, 10);
+        }
+
+        function closePDFPreviewModal() {
+            const modal = document.getElementById('pdfPreviewModal');
+            if (modal) {
+                modal.querySelector('.equipment-modal-content').style.transform = 'translateY(-20px)';
+                modal.style.opacity = '0';
+                
+                setTimeout(() => {
+                    modal.remove();
+                }, 300);
+            }
+        }
+
+        function downloadPDFFromPreview(pdfUrl, fileName) {
+            const link = document.createElement('a');
+            link.href = pdfUrl;
+            link.download = fileName;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            closePDFPreviewModal();
+        }
+
+        // ============= PDF FUNCTIONS =============
+        function exportShiftPDF(dateStr, timeSlot) {
+            if (!currentVehicleId || !dateStr || !timeSlot) {
+                alert("Missing data for PDF generation!");
+                return;
+            }
+            
+            console.log(`📄 Generating PDF for ${dateStr} - ${timeSlot}`);
+            
+            const dailyInspectionKey = `daily_${dateStr}`;
+            
+            db.collection('vehicles')
+                .doc(currentVehicleId)
+                .get()
+                .then((doc) => {
+                    if (!doc.exists) {
+                        alert("Vehicle data not found!");
+                        return;
+                    }
+                    
+                    const vehicleData = doc.data();
+                    const dailyData = vehicleData[dailyInspectionKey];
+                    
+                    if (!dailyData) {
+                        alert("No inspection data found for selected date!");
+                        return;
+                    }
+                    
+                    const inspectionData = timeSlot === '0800' ? dailyData.inspection0800 : dailyData.inspection2000;
+                    if (!inspectionData) {
+                        alert("No inspection data found for selected time slot!");
+                        return;
+                    }
+                    
+                    generateShiftPDF(dateStr, timeSlot, inspectionData);
+                    
+                }).catch((error) => {
+                    console.error('❌ Error loading data for PDF:', error);
+                    alert("Error loading data for PDF generation!");
+                });
+        }
+
+        function exportFullPDF(dateStr) {
+            if (!currentVehicleId || !dateStr) {
+                alert("Missing data for PDF generation!");
+                return;
+            }
+            
+            console.log(`📄 Generating Full PDF for ${dateStr}`);
+            
+            const dailyInspectionKey = `daily_${dateStr}`;
+            
+            db.collection('vehicles')
+                .doc(currentVehicleId)
+                .get()
+                .then((doc) => {
+                    if (!doc.exists) {
+                        alert("Vehicle data not found!");
+                        return;
+                    }
+                    
+                    const vehicleData = doc.data();
+                    const dailyData = vehicleData[dailyInspectionKey];
+                    
+                    if (!dailyData) {
+                        alert("No inspection data found for selected date!");
+                        return;
+                    }
+                    
                     generateFullPDF(dateStr, dailyData);
                     
                 }).catch((error) => {
@@ -1044,490 +2208,443 @@
                 });
         }
 
+        // ============= PDF GENERATION FUNCTIONS =============
         function generateShiftPDF(dateStr, timeSlot, inspectionData) {
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF('p', 'mm', 'a4');
-            
-            const ambulanceType = VEHICLE_AMBULANCE_TYPES[currentVehicleData.vehicleNumber] || '';
+            try {
+                const { jsPDF } = window.jspdf;
+                
+                if (!jsPDF) {
+                    alert("PDF library not loaded. Please check your internet connection.");
+                    return;
+                }
+                
+                const doc = new jsPDF('p', 'mm', 'a4');
+                generateShiftPDFContent(doc, dateStr, timeSlot, inspectionData, 1);
+                
+                const vehicleNumber = currentVehicleData.vehicleNumber || currentVehicleData.ambulanceNumber || 'N/A';
+                const fileName = `Inspection_${vehicleNumber}_${dateStr}_${timeSlot}.pdf`;
+                doc.save(fileName);
+                
+                console.log('✅ PDF generated successfully');
+                
+            } catch (error) {
+                console.error('❌ Error generating PDF:', error);
+                alert("Error generating PDF: " + error.message);
+            }
+        }
+
+        function generateFullPDF(dateStr, dailyData) {
+            try {
+                const { jsPDF } = window.jspdf;
+                
+                if (!jsPDF) {
+                    alert("PDF library not loaded. Please check your internet connection.");
+                    return;
+                }
+                
+                const doc = new jsPDF('p', 'mm', 'a4');
+                
+                if (dailyData.inspection0800) {
+                    generateShiftPDFContent(doc, dateStr, '0800', dailyData.inspection0800, 1);
+                }
+                
+                if (dailyData.inspection2000) {
+                    doc.addPage();
+                    generateShiftPDFContent(doc, dateStr, '2000', dailyData.inspection2000, 2);
+                }
+                
+                const vehicleNumber = currentVehicleData.vehicleNumber || currentVehicleData.ambulanceNumber || 'N/A';
+                const fileName = `Full_Inspection_${vehicleNumber}_${dateStr}.pdf`;
+                doc.save(fileName);
+                
+                console.log('✅ Full PDF generated successfully');
+                
+            } catch (error) {
+                console.error('❌ Error generating PDF:', error);
+                alert("Error generating PDF: " + error.message);
+            }
+        }
+
+        // ============= PERBAIKAN UTAMA: Generate Shift PDF Content =============
+        function generateShiftPDFContent(doc, dateStr, timeSlot, inspectionData, pageNum) {
+            const vehicleNumber = currentVehicleData.vehicleNumber || currentVehicleData.ambulanceNumber || '';
+            const ambulanceType = VEHICLE_AMBULANCE_TYPES[vehicleNumber] || 
+                                 currentVehicleData.ambulanceType || 
+                                 currentVehicleData.manufacturer || '';
             const date = new Date(dateStr);
-            const formattedDate = formatDate(date);
-            const dayName = getDayName(date);
-            const timeRange = timeSlot === '0800' ? '0800 – 2000' : '2000 – 0800';
+            
+            const isFireTruck = currentVehicleType === 'Fire Truck' || 
+                               (currentVehicleData && currentVehicleData.vehicleType === 'Fire Truck');
+            
+            const isRSV = currentVehicleType === 'RSV' || 
+                         currentVehicleType === 'Rapid Support Vehicle' ||
+                         (currentVehicleData && currentVehicleData.vehicleType === 'Rapid Support Vehicle');
+            
+            const isAmbulance = currentVehicleType === 'Ambulance' || 
+                               (currentVehicleData && currentVehicleData.vehicleType === 'Ambulance') ||
+                               currentVehicleData.ambulanceType ||
+                               currentVehicleData.ambulanceNumber;
+            
+            const isMPRV = currentVehicleType === 'MPRV';
             const isAB4 = ambulanceType === 'AB4';
             const isAB1 = ambulanceType === 'AB1';
+            
+            const timeRange = timeSlot === '0800' ? '0800 – 2000' : '2000 – 0800';
+            const pageWidth = doc.internal.pageSize.width;
+            const marginLeft = 10;
+            const marginRight = 10;
             
             // HEADER SECTION
             doc.setFontSize(16);
             doc.setFont("helvetica", "bold");
-            doc.text("CENTRAL EMERGENCY & FIRE SERVICES RESPONSE", 105, 15, { align: "center" });
+            doc.text("CENTRAL EMERGENCY & FIRE SERVICES RESPONSE", pageWidth/2, 15, { align: "center" });
             
             doc.setFontSize(14);
-            doc.text("VEHICLES & EQUIPMENT CHECKLIST", 105, 22, { align: "center" });
+            if (isFireTruck) {
+                doc.text("FIRE TRUCK INSPECTION CHECKLIST", pageWidth/2, 22, { align: "center" });
+            } else if (isAmbulance) {
+                doc.text("AMBULANCE INSPECTION CHECKLIST", pageWidth/2, 22, { align: "center" });
+            } else if (isRSV) {
+                doc.text("RAPID SUPPORT VEHICLE (RSV) INSPECTION", pageWidth/2, 22, { align: "center" });
+            } else if (isMPRV) {
+                doc.text("MULTI-PURPOSE RESPONSE VEHICLE (MPRV) INSPECTION", pageWidth/2, 22, { align: "center" });
+            } else {
+                doc.text("VEHICLES & EQUIPMENT CHECKLIST", pageWidth/2, 22, { align: "center" });
+            }
             
+            // ========== PERBAIKAN 1: FORMAT TARIKH ==========
             // VEHICLE INFORMATION
             let yPos = 35;
             
-            // Ambulance Type
             doc.setFontSize(12);
             doc.setFont("helvetica", "bold");
-            doc.text("AMBULANCE TYPE : ", 10, yPos);
+            doc.text("VEHICLE TYPE:", marginLeft, yPos);
             doc.setFont("helvetica", "normal");
-            doc.text(ambulanceType || currentVehicleData.vehicleType || 'N/A', 45, yPos);
+            doc.text(currentVehicleData.vehicleType || 'Ambulance', marginLeft + 35, yPos);
             
-            // Registration Number
             doc.setFont("helvetica", "bold");
-            doc.text("REGISTRATION NUMBER:", 100, yPos);
+            doc.text("REGISTRATION NO.:", 100, yPos);
             doc.setFont("helvetica", "normal");
-            doc.text(currentVehicleData.vehicleNumber || 'N/A', 145, yPos);
+            doc.text(vehicleNumber || 'N/A', 145, yPos);
             
             yPos += 7;
             
-            // Date (Month Year)
-            const monthYear = date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }).toUpperCase();
+            // TARIKH LENGKAP: day + month + year (contoh: 4 FEBRUARY 2026)
+            const day = date.getDate();
+            const month = date.toLocaleDateString('en-US', { month: 'long' }).toUpperCase();
+            const year = date.getFullYear();
+            const fullDate = `${day} ${month} ${year}`;
             
             doc.setFont("helvetica", "bold");
-            doc.text("DATE:", 10, yPos);
+            doc.text("DATE:", marginLeft, yPos);
             doc.setFont("helvetica", "normal");
-            doc.text(monthYear, 25, yPos);
-            
-            // Time, Inspector and Shift (in one line as requested)
-            doc.setFont("helvetica", "bold");
-            doc.text("TIME:", 70, yPos);
-            doc.setFont("helvetica", "normal");
-            doc.text(timeRange, 85, yPos);
+            doc.text(fullDate, marginLeft + 20, yPos);
             
             doc.setFont("helvetica", "bold");
-            doc.text("INSPECTOR:", 120, yPos);
+            doc.text("TIME:", 100, yPos);
             doc.setFont("helvetica", "normal");
-            doc.text(inspectionData.inspectBy || '-', 150, yPos);
+            doc.text(timeRange, 100 + 20, yPos)
+            
+            yPos += 7;
+            doc.setFont("helvetica", "bold");
+            doc.text("INSPECTOR:", marginLeft, yPos);
+            doc.setFont("helvetica", "normal");
+            doc.text(inspectionData.inspectBy || '-', marginLeft + 30, yPos);
             
             doc.setFont("helvetica", "bold");
-            doc.text("SHIFT:", 160, yPos);
+            doc.text("SHIFT:", 100, yPos);
             doc.setFont("helvetica", "normal");
-            doc.text(inspectionData.shift || '-', 175, yPos);
+            doc.text(inspectionData.shift || '-', marginLeft + 115, yPos);
             
             yPos += 15;
             
-            // ========== VEHICLE INSPECTION TABLE (DENGAN QUANTITY) ==========
+            // VEHICLE INSPECTION TABLE
             doc.setFontSize(11);
             doc.setFont("helvetica", "bold");
-            
-            // Column headers
-            doc.text("NO.", 10, yPos);
-            doc.text("VEHICLE INSPECTION CHECKLIST", 20, yPos);
-            doc.text("QTY", 80, yPos);
-            doc.text("STATUS", 100, yPos);
-            
-            // Draw header line
-            yPos += 3;
-            doc.setLineWidth(0.5);
-            doc.line(10, yPos, 200, yPos);
-            
-            yPos += 5;
-            
-            // Get inspection data
-            const vehicleData = inspectionData.vehicleInspectionData || [];
-            
-            // Vehicle Inspection Items (16 items)
-            VEHICLE_INSPECTION_ITEMS.forEach((item, index) => {
-                if (yPos > 270) {
-                    doc.addPage();
-                    yPos = 20;
-                }
-                
-                // Number
-                doc.setFont("helvetica", "normal");
-                doc.setFontSize(10);
-                doc.text(`${index + 1}`, 10, yPos);
-                
-                // Item name
-                const itemName = item.name.length > 30 ? item.name.substring(0, 30) + "..." : item.name;
-                doc.text(itemName, 20, yPos);
-                
-                // Quantity
-                doc.text(item.qty, 85, yPos, { align: "center" });
-                
-                // Value
-                const dataItem = vehicleData[index];
-                let value = "BROKEN";
-                
-                if (dataItem) {
-                    if (item.type === "textfield") {
-                        if (item.name === "FUEL LEVEL") {
-                            value = dataItem.value ? `${dataItem.value}%` : "BROKEN";
-                        } else if (item.name === "MILLAGE / ODOMETER") {
-                            value = dataItem.value ? dataItem.value : "BROKEN";
-                        }
-                    } else {
-                        value = dataItem.checked ? "OK" : "BROKEN";
-                    }
-                }
-                doc.text(value, 105, yPos, { align: "center" });
-                
-                yPos += 5;
-            });
-            
-            // ========== MEDICAL RESPONSE INSPECTION TABLE (TANPA TYPE) ==========
-            yPos += 10;
-            
-            if (yPos > 270) {
-                doc.addPage();
-                yPos = 20;
-            }
-            
-            // Medical Response Header - ALWAYS SHOW
-            doc.setFontSize(11);
-            doc.setFont("helvetica", "bold");
-            doc.text("MEDICAL RESPONSE INSPECTION", 10, yPos);
-            
-            yPos += 3;
-            doc.line(10, yPos, 200, yPos);
-            yPos += 5;
-            
-            // Medical Inspection Items
-            const medicalItems = isAB4 ? MEDICAL_INSPECTION_ITEMS_AB4 : 
-                               isAB1 ? MEDICAL_INSPECTION_ITEMS_AB1 : [];
-            const medicalData = inspectionData.medicalInspectionData || [];
-            
-            // Column headers for medical
-            doc.setFontSize(11);
-            doc.setFont("helvetica", "bold");
-            doc.text("NO.", 10, yPos);
-            doc.text("ITEM", 20, yPos);
-            doc.text("QTY", 80, yPos);
-            doc.text("STATUS", 100, yPos);
-            
-            yPos += 3;
-            doc.line(10, yPos, 200, yPos);
-            yPos += 5;
-            
-            // Use available items if medicalData exists, otherwise use default items
-            const displayItems = medicalItems.length > 0 ? medicalItems : MEDICAL_INSPECTION_ITEMS_AB4;
-            
-            displayItems.forEach((item, index) => {
-                if (yPos > 270) {
-                    doc.addPage();
-                    yPos = 20;
-                }
-                
-                // Number
-                doc.setFont("helvetica", "normal");
-                doc.setFontSize(10);
-                doc.text(`${index + 1}`, 10, yPos);
-                
-                // Item name
-                const maxNameLength = 25;
-                let itemName = item.name;
-                if (itemName.length > maxNameLength) {
-                    itemName = itemName.substring(0, maxNameLength);
-                }
-                doc.text(itemName, 20, yPos);
-                
-                // Quantity
-                doc.text(item.qty, 85, yPos, { align: "center" });
-                
-                // Value - check if we have actual data
-                let value = "BROKEN";
-                if (medicalData.length > index) {
-                    const dataItem = medicalData[index];
-                    if (dataItem) {
-                        // Check if it's medical oxygen
-                        if (item.name.includes("MEDICAL OXYGEN")) {
-                            value = dataItem.value ? `${dataItem.value}%` : "BROKEN";
-                        } else {
-                            value = dataItem.checked ? "OK" : "BROKEN";
-                        }
-                    }
-                }
-                doc.text(value, 105, yPos, { align: "center" });
-                
-                yPos += 5;
-            });
-            
-            // ========== INSPECTION DETAILS ==========
-            yPos += 10;
-            
-            if (yPos > 270) {
-                doc.addPage();
-                yPos = 20;
-            }
-            
-            doc.setFontSize(11);
-            doc.setFont("helvetica", "bold");
-            doc.text("INSPECTION DETAILS", 10, yPos);
-            
-            yPos += 7;
-            doc.setFont("helvetica", "normal");
-            doc.setFontSize(10);
-            
-            doc.text(`Medic: ${inspectionData.medic || '-'}`, 10, yPos);
-            doc.text(`SWC/WC: ${inspectionData.swcwc || '-'}`, 70, yPos);
-            
-            yPos += 7;
-            doc.text(`Timestamp: ${inspectionData.timestamp ? formatTimeDisplay(inspectionData.timestamp) : '-'}`, 10, yPos);
-            
-            if (inspectionData.remarks) {
-                yPos += 7;
-                doc.text(`Remarks: ${inspectionData.remarks}`, 10, yPos);
-            }
-            
-            // ========== SAVE PDF ==========
-            const fileName = `Inspection_${currentVehicleData.vehicleNumber}_${dateStr}_${timeSlot}.pdf`;
-            doc.save(fileName);
-            
-            console.log('✅ PDF generated successfully');
-        }
-
-        function generateFullPDF(dateStr, dailyData) {
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF('p', 'mm', 'a4');
-            
-            const ambulanceType = VEHICLE_AMBULANCE_TYPES[currentVehicleData.vehicleNumber] || '';
-            const date = new Date(dateStr);
-            const formattedDate = formatDate(date);
-            const dayName = getDayName(date);
-            const isAB4 = ambulanceType === 'AB4';
-            const isAB1 = ambulanceType === 'AB1';
-            
-            // HEADER SECTION (SAME FOR ALL PAGES)
-            function drawHeader() {
-                doc.setFontSize(16);
-                doc.setFont("helvetica", "bold");
-                doc.text("CENTRAL EMERGENCY & FIRE SERVICES RESPONSE", 105, 15, { align: "center" });
-                
-                doc.setFontSize(14);
-                doc.text("VEHICLES & EQUIPMENT CHECKLIST", 105, 22, { align: "center" });
-                
-                // VEHICLE INFORMATION
-                let yPos = 35;
-                
-                doc.setFontSize(12);
-                doc.setFont("helvetica", "bold");
-                doc.text("AMBULANCE TYPE : ", 10, yPos);
-                doc.setFont("helvetica", "normal");
-                doc.text(ambulanceType || currentVehicleData.vehicleType || 'N/A', 45, yPos);
-                
-                doc.setFont("helvetica", "bold");
-                doc.text("REGISTRATION NUMBER:", 100, yPos);
-                doc.setFont("helvetica", "normal");
-                doc.text(currentVehicleData.vehicleNumber || 'N/A', 145, yPos);
-                
-                yPos += 7;
-                
-                const monthYear = date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }).toUpperCase();
-                
-                doc.setFont("helvetica", "bold");
-                doc.text("DATE:", 10, yPos);
-                doc.setFont("helvetica", "normal");
-                doc.text(monthYear, 25, yPos);
-                
-                return yPos;
-            }
-            
-            // Generate for Shift 0800
-            if (dailyData.inspection0800) {
-                let yPos = drawHeader();
-                
-                // Time, Inspector and Shift for 0800 (in one line)
-                doc.setFont("helvetica", "bold");
-                doc.text("TIME:", 70, yPos);
-                doc.setFont("helvetica", "normal");
-                doc.text("0800 – 2000", 85, yPos);
-                
-                doc.setFont("helvetica", "bold");
-                doc.text("INSPECTOR:", 120, yPos);
-                doc.setFont("helvetica", "normal");
-                doc.text(dailyData.inspection0800.inspectBy || '-', 150, yPos);
-                
-                doc.setFont("helvetica", "bold");
-                doc.text("SHIFT:", 160, yPos);
-                doc.setFont("helvetica", "normal");
-                doc.text(dailyData.inspection0800.shift || '-', 175, yPos);
-                
-                yPos += 15;
-                
-                // Draw table for 0800
-                drawInspectionTable(doc, yPos, "0800-2000", dailyData.inspection0800, isAB4, isAB1);
-            }
-            
-            // Add new page for Shift 2000
-            if (dailyData.inspection2000) {
-                doc.addPage();
-                let yPos = drawHeader();
-                
-                // Time, Inspector and Shift for 2000 (in one line)
-                doc.setFont("helvetica", "bold");
-                doc.text("TIME:", 70, yPos);
-                doc.setFont("helvetica", "normal");
-                doc.text("2000 – 0800", 85, yPos);
-                
-                doc.setFont("helvetica", "bold");
-                doc.text("INSPECTOR:", 120, yPos);
-                doc.setFont("helvetica", "normal");
-                doc.text(dailyData.inspection2000.inspectBy || '-', 150, yPos);
-                
-                doc.setFont("helvetica", "bold");
-                doc.text("SHIFT:", 160, yPos);
-                doc.setFont("helvetica", "normal");
-                doc.text(dailyData.inspection2000.shift || '-', 175, yPos);
-                
-                yPos += 15;
-                
-                // Draw table for 2000
-                drawInspectionTable(doc, yPos, "2000-0800", dailyData.inspection2000, isAB4, isAB1);
-            }
-            
-            // ========== SAVE PDF ==========
-            const fileName = `Full_Inspection_${currentVehicleData.vehicleNumber}_${dateStr}.pdf`;
-            doc.save(fileName);
-            
-            console.log('✅ Full PDF generated successfully');
-        }
-
-        function drawInspectionTable(doc, yPos, timeRange, inspectionData, isAB4, isAB1) {
-            // VEHICLE INSPECTION TABLE HEADER (DENGAN QUANTITY)
-            doc.setFontSize(11);
-            doc.setFont("helvetica", "bold");
-            
-            doc.text("NO.", 10, yPos);
-            doc.text("VEHICLE INSPECTION CHECKLIST", 20, yPos);
-            doc.text("QTY", 80, yPos);
-            doc.text("STATUS", 100, yPos);
+            doc.text("NO.", marginLeft, yPos);
+            doc.text("VEHICLE INSPECTION CHECKLIST", marginLeft + 10, yPos);
+            doc.text("QTY", marginLeft + 85, yPos, { align: "center" });
+            doc.text("STATUS/VALUE", marginLeft + 105, yPos, { align: "center" });
             
             yPos += 3;
             doc.setLineWidth(0.5);
-            doc.line(10, yPos, 200, yPos);
-            
+            doc.line(marginLeft, yPos, pageWidth - marginRight, yPos);
             yPos += 5;
             
-            // Get inspection data
             const vehicleData = inspectionData.vehicleInspectionData || [];
+            const vehicleItems = isFireTruck ? FIRE_TRUCK_VEHICLE_INSPECTION_ITEMS : 
+                                (isAmbulance || isMPRV || isRSV) ? VEHICLE_INSPECTION_ITEMS : [];
             
-            // Vehicle Inspection Items
-            VEHICLE_INSPECTION_ITEMS.forEach((item, index) => {
+            vehicleItems.forEach((item, index) => {
                 if (yPos > 270) {
                     doc.addPage();
                     yPos = 20;
-                    // Redraw header for new page
                     doc.setFontSize(11);
                     doc.setFont("helvetica", "bold");
-                    doc.text("NO.", 10, yPos);
-                    doc.text("VEHICLE INSPECTION CHECKLIST", 20, yPos);
-                    doc.text("QTY", 80, yPos);
-                    doc.text("STATUS", 100, yPos);
+                    doc.text("NO.", marginLeft, yPos);
+                    doc.text("VEHICLE INSPECTION CHECKLIST", marginLeft + 10, yPos);
+                    doc.text("QTY", marginLeft + 85, yPos, { align: "center" });
+                    doc.text("STATUS/VALUE", marginLeft + 105, yPos, { align: "center" });
                     yPos += 8;
                 }
                 
                 doc.setFont("helvetica", "normal");
                 doc.setFontSize(10);
-                doc.text(`${index + 1}`, 10, yPos);
+                doc.text(`${index + 1}`, marginLeft, yPos);
                 
                 const itemName = item.name.length > 30 ? item.name.substring(0, 30) + "..." : item.name;
-                doc.text(itemName, 20, yPos);
+                doc.text(itemName, marginLeft + 10, yPos);
                 
-                // Quantity
-                doc.text(item.qty, 85, yPos, { align: "center" });
+                doc.text(item.qty, marginLeft + 85, yPos, { align: "center" });
                 
-                const dataItem = vehicleData[index];
+                const dataItem = vehicleData[index] || {};
                 let value = "BROKEN";
                 
-                if (dataItem) {
-                    if (item.type === "textfield") {
-                        if (item.name === "FUEL LEVEL") {
-                            value = dataItem.value ? `${dataItem.value}%` : "BROKEN";
-                        } else if (item.name === "MILLAGE / ODOMETER") {
-                            value = dataItem.value ? dataItem.value : "BROKEN";
-                        }
-                    } else {
-                        value = dataItem.checked ? "OK" : "BROKEN";
+                const isTextField = item.name.includes("LEVEL") || 
+                                   item.name.includes("MILEAGE") || 
+                                   item.name.includes("ODOMETER");
+                
+                if (isTextField) {
+                    value = dataItem.value ? dataItem.value : "NOT RECORDED";
+                    if (item.name === "FUEL LEVEL" && dataItem.value && !dataItem.value.includes("%")) {
+                        value = dataItem.value + "%";
                     }
+                } else {
+                    value = dataItem.checked ? "OK" : "BROKEN";
                 }
-                doc.text(value, 105, yPos, { align: "center" });
+                doc.text(value, marginLeft + 105, yPos, { align: "center" });
                 
                 yPos += 5;
             });
             
-            // MEDICAL RESPONSE INSPECTION TABLE (TANPA TYPE)
-            yPos += 10;
-            
-            if (yPos > 270) {
-                doc.addPage();
-                yPos = 20;
-            }
-            
-            doc.setFontSize(11);
-            doc.setFont("helvetica", "bold");
-            doc.text("MEDICAL RESPONSE INSPECTION", 10, yPos);
-            
-            yPos += 3;
-            doc.line(10, yPos, 200, yPos);
-            yPos += 5;
-            
-            // Medical Inspection Items
-            const medicalItems = isAB4 ? MEDICAL_INSPECTION_ITEMS_AB4 : 
-                               isAB1 ? MEDICAL_INSPECTION_ITEMS_AB1 : [];
-            const medicalData = inspectionData.medicalInspectionData || [];
-            
-            // Column headers for medical
-            doc.setFontSize(11);
-            doc.setFont("helvetica", "bold");
-            doc.text("NO.", 10, yPos);
-            doc.text("ITEM", 20, yPos);
-            doc.text("QTY", 80, yPos);
-            doc.text("STATUS", 100, yPos);
-            
-            yPos += 3;
-            doc.line(10, yPos, 200, yPos);
-            yPos += 5;
-            
-            // Use available items
-            const displayItems = medicalItems.length > 0 ? medicalItems : MEDICAL_INSPECTION_ITEMS_AB4;
-            
-            displayItems.forEach((item, index) => {
+            // MEDICAL INSPECTION (AMBULANCE)
+            if (isAmbulance) {
+                yPos += 10;
+                
                 if (yPos > 270) {
                     doc.addPage();
                     yPos = 20;
-                    // Redraw header for new page
+                }
+                
+                doc.setFontSize(11);
+                doc.setFont("helvetica", "bold");
+                doc.text(`MEDICAL RESPONSE INSPECTION (${ambulanceType})`, marginLeft, yPos);
+                
+                yPos += 3;
+                doc.line(marginLeft, yPos, pageWidth - marginRight, yPos);
+                yPos += 5;
+                
+                const medicalItems = isAB4 ? MEDICAL_INSPECTION_ITEMS_AB4 : 
+                                   isAB1 ? MEDICAL_INSPECTION_ITEMS_AB1 : [];
+                const medicalData = inspectionData.medicalInspectionData || [];
+                
+                doc.setFontSize(11);
+                doc.setFont("helvetica", "bold");
+                doc.text("NO.", marginLeft, yPos);
+                doc.text("ITEM", marginLeft + 10, yPos);
+                doc.text("QTY", marginLeft + 85, yPos, { align: "center" });
+                doc.text("STATUS", marginLeft + 105, yPos, { align: "center" });
+                
+                yPos += 3;
+                doc.line(marginLeft, yPos, pageWidth - marginRight, yPos);
+                yPos += 5;
+                
+                medicalItems.forEach((item, index) => {
+                    if (yPos > 270) {
+                        doc.addPage();
+                        yPos = 20;
+                        doc.setFontSize(11);
+                        doc.setFont("helvetica", "bold");
+                        doc.text("NO.", marginLeft, yPos);
+                        doc.text("ITEM", marginLeft + 10, yPos);
+                        doc.text("QTY", marginLeft + 85, yPos, { align: "center" });
+                        doc.text("STATUS", marginLeft + 105, yPos, { align: "center" });
+                        yPos += 8;
+                    }
+                    
+                    doc.setFont("helvetica", "normal");
+                    doc.setFontSize(10);
+                    doc.text(`${index + 1}`, marginLeft, yPos);
+                    
+                    const maxNameLength = 25;
+                    let itemName = item.name;
+                    if (itemName.length > maxNameLength) {
+                        itemName = itemName.substring(0, maxNameLength);
+                    }
+                    doc.text(itemName, marginLeft + 10, yPos);
+                    
+                    doc.text(item.qty, marginLeft + 85, yPos, { align: "center" });
+                    
+                    let value = "NOT RECORDED";
+                    const dataItem = medicalData[index] || {};
+                    
+                    if (item.name.includes("MEDICAL OXYGEN")) {
+                        value = dataItem.value ? `${dataItem.value}%` : "NOT RECORDED";
+                    } else {
+                        value = dataItem.checked ? "OK" : "BROKEN";
+                    }
+                    doc.text(value, marginLeft + 105, yPos, { align: "center" });
+                    
+                    yPos += 5;
+                });
+            }
+            
+            // ========== PERBAIKAN 2: EQUIPMENT INSPECTION UNTUK FIRE TRUCK ==========
+            if (isFireTruck) {
+                const equipmentItems = FIRE_TRUCK_EQUIPMENT_INSPECTION_ITEMS;
+                const equipmentData = inspectionData.equipmentInspectionData || [];
+                
+                if (equipmentItems.length > 0) {
+                    yPos += 10;
+                    
+                    if (yPos > 270) {
+                        doc.addPage();
+                        yPos = 20;
+                    }
+                    
                     doc.setFontSize(11);
                     doc.setFont("helvetica", "bold");
-                    doc.text("NO.", 10, yPos);
-                    doc.text("ITEM", 20, yPos);
-                    doc.text("QTY", 80, yPos);
-                    doc.text("STATUS", 100, yPos);
-                    yPos += 8;
-                }
-                
-                doc.setFont("helvetica", "normal");
-                doc.setFontSize(10);
-                doc.text(`${index + 1}`, 10, yPos);
-                
-                const maxNameLength = 25;
-                let itemName = item.name;
-                if (itemName.length > maxNameLength) {
-                    itemName = itemName.substring(0, maxNameLength);
-                }
-                doc.text(itemName, 20, yPos);
-                
-                // Quantity
-                doc.text(item.qty, 85, yPos, { align: "center" });
-                
-                // Check if we have actual data
-                let value = "BROKEN";
-                if (medicalData.length > index) {
-                    const dataItem = medicalData[index];
-                    if (dataItem) {
-                        // Check if it's medical oxygen
-                        if (item.name.includes("MEDICAL OXYGEN")) {
-                            value = dataItem.value ? `${dataItem.value}%` : "BROKEN";
-                        } else {
-                            value = dataItem.checked ? "OK" : "BROKEN";
+                    doc.text("FIRE TRUCK EQUIPMENT INSPECTION", marginLeft, yPos);
+                    
+                    yPos += 3;
+                    doc.line(marginLeft, yPos, pageWidth - marginRight, yPos);
+                    yPos += 5;
+                    
+                    doc.setFontSize(11);
+                    doc.setFont("helvetica", "bold");
+                    doc.text("NO.", marginLeft, yPos);
+                    doc.text("EQUIPMENT ITEM", marginLeft + 10, yPos);
+                    doc.text("QTY", marginLeft + 85, yPos, { align: "center" });
+                    doc.text("STATUS", marginLeft + 105, yPos, { align: "center" });
+                    
+                    yPos += 3;
+                    doc.line(marginLeft, yPos, pageWidth - marginRight, yPos);
+                    yPos += 5;
+                    
+                    equipmentItems.forEach((item, index) => {
+                        if (yPos > 270) {
+                            doc.addPage();
+                            yPos = 20;
+                            doc.setFontSize(11);
+                            doc.setFont("helvetica", "bold");
+                            doc.text("NO.", marginLeft, yPos);
+                            doc.text("EQUIPMENT ITEM", marginLeft + 10, yPos);
+                            doc.text("QTY", marginLeft + 85, yPos, { align: "center" });
+                            doc.text("STATUS", marginLeft + 105, yPos, { align: "center" });
+                            yPos += 8;
                         }
-                    }
+                        
+                        doc.setFont("helvetica", "normal");
+                        doc.setFontSize(10);
+                        doc.text(`${index + 1}`, marginLeft, yPos);
+                        
+                        const maxNameLength = 25;
+                        let itemName = item.name;
+                        if (itemName.length > maxNameLength) {
+                            itemName = itemName.substring(0, maxNameLength);
+                        }
+                        doc.text(itemName, marginLeft + 10, yPos);
+                        
+                        doc.text(item.qty, marginLeft + 85, yPos, { align: "center" });
+                        
+                        const dataItem = equipmentData[index] || {};
+                        const value = dataItem.checked ? "OK" : "BROKEN";
+                        doc.text(value, marginLeft + 105, yPos, { align: "center" });
+                        
+                        yPos += 5;
+                    });
                 }
-                doc.text(value, 105, yPos, { align: "center" });
+            }
+            
+            // ========== PERBAIKAN 3: EQUIPMENT INSPECTION UNTUK RSV ==========
+            if (isRSV) {
+                const equipmentData = inspectionData.equipmentInspectionData || {};
                 
-                yPos += 5;
-            });
+                // Loop melalui semua kategori RSV
+                Object.keys(RSV_CATEGORY_EQUIPMENT).forEach(category => {
+                    const categoryEquipment = RSV_CATEGORY_EQUIPMENT[category];
+                    const categoryData = equipmentData[category] || {};
+                    const itemsData = categoryData.items || [];
+                    
+                    if (categoryEquipment.length > 0) {
+                        yPos += 10;
+                        
+                        if (yPos > 270) {
+                            doc.addPage();
+                            yPos = 20;
+                        }
+                        
+                        doc.setFontSize(11);
+                        doc.setFont("helvetica", "bold");
+                        doc.text(`RSV EQUIPMENT - ${category}`, marginLeft, yPos);
+                        
+                        yPos += 3;
+                        doc.line(marginLeft, yPos, pageWidth - marginRight, yPos);
+                        yPos += 5;
+                        
+                        doc.setFontSize(11);
+                        doc.setFont("helvetica", "bold");
+                        doc.text("NO.", marginLeft, yPos);
+                        doc.text("EQUIPMENT ITEM", marginLeft + 10, yPos);
+                        doc.text("QTY", marginLeft + 85, yPos, { align: "center" });
+                        doc.text("STATUS", marginLeft + 105, yPos, { align: "center" });
+                        
+                        yPos += 3;
+                        doc.line(marginLeft, yPos, pageWidth - marginRight, yPos);
+                        yPos += 5;
+                        
+                        categoryEquipment.forEach((item, index) => {
+                            if (yPos > 270) {
+                                doc.addPage();
+                                yPos = 20;
+                                doc.setFontSize(11);
+                                doc.setFont("helvetica", "bold");
+                                doc.text("NO.", marginLeft, yPos);
+                                doc.text("EQUIPMENT ITEM", marginLeft + 10, yPos);
+                                doc.text("QTY", marginLeft + 85, yPos, { align: "center" });
+                                doc.text("STATUS", marginLeft + 105, yPos, { align: "center" });
+                                yPos += 8;
+                            }
+                            
+                            doc.setFont("helvetica", "normal");
+                            doc.setFontSize(10);
+                            doc.text(`${index + 1}`, marginLeft, yPos);
+                            
+                            const maxNameLength = 25;
+                            let itemName = item.name;
+                            if (itemName.length > maxNameLength) {
+                                itemName = itemName.substring(0, maxNameLength);
+                            }
+                            doc.text(itemName, marginLeft + 10, yPos);
+                            
+                            doc.text(item.qty, marginLeft + 85, yPos, { align: "center" });
+                            
+                            // Cari item yang sesuai dalam data
+                            let storedItem = null;
+                            let isInspected = false;
+                            
+                            if (itemsData && itemsData.length > 0) {
+                                storedItem = itemsData.find(i => {
+                                    if (i && i.id) {
+                                        return i.id === item.id || 
+                                               (i.name && item.name && i.name.toLowerCase().includes(item.name.toLowerCase().split(' ')[0]));
+                                    }
+                                    return false;
+                                });
+                                
+                                if (storedItem) {
+                                    isInspected = storedItem.inspected || storedItem.checked || false;
+                                }
+                            }
+                            
+                            const value = isInspected ? "OK" : "BROKEN";
+                            doc.text(value, marginLeft + 105, yPos, { align: "center" });
+                            
+                            yPos += 5;
+                        });
+                    }
+                });
+            }
             
             // INSPECTION DETAILS
             yPos += 10;
@@ -1539,21 +2656,26 @@
             
             doc.setFontSize(11);
             doc.setFont("helvetica", "bold");
-            doc.text("INSPECTION DETAILS", 10, yPos);
+            doc.text("INSPECTION DETAILS", marginLeft, yPos);
             
             yPos += 7;
             doc.setFont("helvetica", "normal");
             doc.setFontSize(10);
             
-            doc.text(`Medic: ${inspectionData.medic || '-'}`, 10, yPos);
-            doc.text(`SWC/WC: ${inspectionData.swcwc || '-'}`, 70, yPos);
+            if (isAmbulance) {
+                doc.text(`Medic: ${inspectionData.medic || '-'}`, marginLeft, yPos);
+                doc.text(`SWC/WC: ${inspectionData.swcwc || '-'}`, marginLeft + 60, yPos);
+                yPos += 7;
+            } else {
+                doc.text(`SWC/WC: ${inspectionData.swcwc || '-'}`, marginLeft, yPos);
+                yPos += 7;
+            }
             
-            yPos += 7;
-            doc.text(`Timestamp: ${inspectionData.timestamp ? formatTimeDisplay(inspectionData.timestamp) : '-'}`, 10, yPos);
+            doc.text(`Timestamp: ${inspectionData.timestamp ? formatTimeDisplay(inspectionData.timestamp) : '-'}`, marginLeft, yPos);
             
             if (inspectionData.remarks) {
                 yPos += 7;
-                doc.text(`Remarks: ${inspectionData.remarks}`, 10, yPos);
+                doc.text(`Remarks: ${inspectionData.remarks}`, marginLeft, yPos);
             }
         }
 
