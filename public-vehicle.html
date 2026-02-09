@@ -474,77 +474,77 @@
         }
 
         .inspection-details-table {
-    margin-top: 20px;
-    border: 2px solid #000 !important;
-    font-size: 12px;
-    width: 100%;
-    border-collapse: collapse;
-}
+            margin-top: 20px;
+            border: 2px solid #000 !important;
+            font-size: 12px;
+            width: 100%;
+            border-collapse: collapse;
+        }
 
-.inspection-details-table th,
-.inspection-details-table td {
-    border: 1px solid #000 !important;
-}
+        .inspection-details-table th,
+        .inspection-details-table td {
+            border: 1px solid #000 !important;
+        }
 
-.inspection-details-table th {
-    background-color: #f1f1f1;
-    padding: 8px 5px;
-    text-align: center;
-    font-weight: 600;
-}
+        .inspection-details-table th {
+            background-color: #f1f1f1;
+            padding: 8px 5px;
+            text-align: center;
+            font-weight: 600;
+        }
 
-.inspection-details-table .sub-header th {
-    background-color: #e9ecef;
-    font-size: 11px;
-    padding: 5px;
-}
+        .inspection-details-table .sub-header th {
+            background-color: #e9ecef;
+            font-size: 11px;
+            padding: 5px;
+        }
 
-.inspection-details-table td {
-    padding: 12px 8px;
-    text-align: center;
-    vertical-align: middle;
-}
+        .inspection-details-table td {
+            padding: 12px 8px;
+            text-align: center;
+            vertical-align: middle;
+        }
 
-.inspection-details-table .current-shift {
-    background-color: #e7f4ff;
-    font-weight: 600;
-    color: #0056b3;
-}
+        .inspection-details-table .current-shift {
+            background-color: #e7f4ff;
+            font-weight: 600;
+            color: #0056b3;
+        }
 
-.inspection-details-table .name-row td {
-    font-weight: bold;
-    text-align: left;
-}
+        .inspection-details-table .name-row td {
+            font-weight: bold;
+            text-align: left;
+        }
 
-.inspection-details-table .name-row td:first-child {
-    width: 80px;
-    text-align: center;
-}
+        .inspection-details-table .name-row td:first-child {
+            width: 80px;
+            text-align: center;
+        }
 
-.inspection-details-table .name-row td:nth-child(2) {
-    text-align: left;
-    padding-left: 15px;
-    font-size: 14px;
-}
+        .inspection-details-table .name-row td:nth-child(2) {
+            text-align: left;
+            padding-left: 15px;
+            font-size: 14px;
+        }
 
-.signature-cell {
-    min-height: 30px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 18px;
-}
+        .signature-cell {
+            min-height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
 
-.footer-note {
-    padding: 15px !important;
-    background-color: #f8f9fa;
-    text-align: center;
-}
+        .footer-note {
+            padding: 15px !important;
+            background-color: #f8f9fa;
+            text-align: center;
+        }
 
-.condition-section {
-    display: inline-flex;
-    align-items: center;
-    gap: 15px;
+        .condition-section {
+            display: inline-flex;
+            align-items: center;
+            gap: 15px;
             margin-top: 5px;
         }
 
@@ -1156,15 +1156,17 @@
         function loadVehicleListFromFirebase() {
             let vehicles = [];
             
-            if (currentVehicleType === 'Ambulance') {
-                vehicles = allVehiclesData.filter(v => 
-                    v.vehicleType === 'Ambulance' || 
-                    v.ambulanceType || 
-                    (!v.vehicleType && v.ambulanceNumber)
-                );
-            } else {
-                vehicles = allVehiclesData.filter(v => v.vehicleType === currentVehicleType);
-            }
+            // FIX: Hanya filter untuk vehicle type sahaja, elakkan duplicate
+            vehicles = allVehiclesData.filter(v => v.vehicleType === currentVehicleType);
+            
+            // Debug untuk check duplicates
+            console.log(`🔍 Vehicles for ${currentVehicleType}:`, vehicles.length);
+            console.log("📋 Vehicle details:", vehicles.map(v => ({
+                id: v.id,
+                number: v.vehicleNumber || v.ambulanceNumber,
+                type: v.vehicleType,
+                ambulanceType: v.ambulanceType
+            })));
             
             if (vehicles.length === 0) {
                 document.getElementById('loadingMessage').style.display = 'none';
@@ -2022,7 +2024,7 @@
             db.collection('vehicles')
                 .doc(currentVehicleId)
                 .get()
-                .then((doc) => {
+                .then(async (doc) => {
                     if (!doc.exists) {
                         alert("Vehicle data not found!");
                         return;
@@ -2041,7 +2043,21 @@
                         alert("No inspection data found for selected time slot!");
                         return;
                     }
-                    generatePDFPreview(dateStr, { inspectionData: inspectionData }, false, timeSlot);
+                    
+                    // Dapatkan data untuk kedua-dua shift untuk Inspection Details table
+                    let inspection2000Data = null;
+                    if (timeSlot === '0800') {
+                        inspection2000Data = dailyData.inspection2000 || null;
+                    }
+                    
+                    // Sediakan data lengkap untuk PDF generation
+                    const pdfData = {
+                        inspectionData: inspectionData,
+                        inspection0800: timeSlot === '0800' ? inspectionData : null,
+                        inspection2000: timeSlot === '2000' ? inspectionData : inspection2000Data
+                    };
+                    
+                    generatePDFPreview(dateStr, pdfData, false, timeSlot);
                     
                 }).catch((error) => {
                     console.error('❌ Error loading data for PDF preview:', error);
@@ -2049,7 +2065,7 @@
                 });
         }
 
-        function generatePDFPreview(dateStr, data, isFullReport, timeSlot = null) {
+        async function generatePDFPreview(dateStr, data, isFullReport, timeSlot = null) {
             try {
                 const { jsPDF } = window.jspdf;
                 
@@ -2061,21 +2077,24 @@
                 const doc = new jsPDF('p', 'mm', 'a4');
                 
                 if (isFullReport) {
+                    // Untuk full report (kedua-dua shift)
                     if (data.inspection0800) {
-                        generateShiftPDFContent(doc, dateStr, '0800', data.inspection0800, 1);
+                        await generateShiftPDFContent(doc, dateStr, '0800', data.inspection0800, 1);
                     }
                     
                     if (data.inspection2000) {
                         doc.addPage();
-                        generateShiftPDFContent(doc, dateStr, '2000', data.inspection2000, 2);
+                        await generateShiftPDFContent(doc, dateStr, '2000', data.inspection2000, 2);
                     }
                 } else {
-                    generateShiftPDFContent(doc, dateStr, timeSlot, data.inspectionData, 1);
+                    // Untuk single shift (view atau export satu shift sahaja)
+                    await generateShiftPDFContent(doc, dateStr, timeSlot, data.inspectionData, 1);
                 }
                 
                 const pdfBlob = doc.output('blob');
                 const pdfUrl = URL.createObjectURL(pdfBlob);
                 
+                // Buka PDF dalam tab baru
                 window.open(pdfUrl, '_blank');
                 
                 showPDFPreviewModal(pdfUrl, dateStr, timeSlot, isFullReport);
@@ -2206,7 +2225,7 @@
                 });
         }
 
-        function generateShiftPDF(dateStr, timeSlot, inspectionData) {
+        async function generateShiftPDF(dateStr, timeSlot, inspectionData) {
             try {
                 const { jsPDF } = window.jspdf;
                 
@@ -2216,7 +2235,7 @@
                 }
                 
                 const doc = new jsPDF('p', 'mm', 'a4');
-                generateShiftPDFContent(doc, dateStr, timeSlot, inspectionData, 1);
+                await generateShiftPDFContent(doc, dateStr, timeSlot, inspectionData, 1);
                 
                 const vehicleNumber = currentVehicleData.vehicleNumber || currentVehicleData.ambulanceNumber || 'N/A';
                 const fileName = `Inspection_${vehicleNumber}_${dateStr}_${timeSlot}.pdf`;
@@ -2230,160 +2249,39 @@
             }
         }
 
-        // ========== FUNGSI UNTUK INSPECTION DETAILS TABLE ==========
-        function generateInspectionDetailsTablePDF(doc, inspectionData, isAmbulance) {
-            const pageWidth = doc.internal.pageSize.width;
-            
-            // Sentiasa tambah halaman baru untuk Inspection Details Table
-            doc.addPage();
-            
-            let yPos = 20;
-            
-            // Header INSPECTION DETAILS SIGNATURE (seperti dalam gambar)
-            doc.setFontSize(12);
-            doc.setFont("helvetica", "bold");
-            doc.text("INSPECTION DETAILS SIGNATURE", pageWidth/2, yPos, { align: "center" });
-            
-            yPos += 15;
-            
-            // Table border
-            const tableTop = yPos;
-            const colWidth = 25;
-            
-            if (isAmbulance) {
-                // Ambulance: 7 columns (including empty columns for spacing)
-                const totalWidth = colWidth * 7;
-                const tableLeft = (pageWidth - totalWidth) / 2;
+        // ========== FUNGSI UNTUK AMBIL DATA SHIFT 2000 ==========
+        async function loadInspection2000Data(dateStr) {
+            try {
+                const dailyInspectionKey = `daily_${dateStr}`;
+                const docRef = await db.collection('vehicles').doc(currentVehicleId).get();
                 
-                // Main headers row
-                doc.setFontSize(10);
-                doc.setFont("helvetica", "bold");
-                
-                // Main headers (with empty columns for spacing)
-                doc.text("", tableLeft, yPos);
-                doc.text("INSPECT BY", tableLeft + colWidth, yPos);
-                doc.text("", tableLeft + (colWidth * 2), yPos);
-                doc.text("MEDIC", tableLeft + (colWidth * 3), yPos);
-                doc.text("", tableLeft + (colWidth * 4), yPos);
-                doc.text("SWC / WC", tableLeft + (colWidth * 5), yPos);
-                doc.text("", tableLeft + (colWidth * 6), yPos);
-                
-                yPos += 5;
-                
-                // Sub-headers (shift times)
-                doc.setFontSize(9);
-                doc.text("0800-2000", tableLeft + colWidth, yPos);
-                doc.text("2000-0800", tableLeft + (colWidth * 2), yPos);
-                doc.text("0800-2000", tableLeft + (colWidth * 3), yPos);
-                doc.text("2000-0800", tableLeft + (colWidth * 4), yPos);
-                doc.text("0800-2000", tableLeft + (colWidth * 5), yPos);
-                doc.text("2000-0800", tableLeft + (colWidth * 6), yPos);
-                
-                yPos += 5;
-                
-                // Draw horizontal line
-                doc.setLineWidth(0.3);
-                doc.line(tableLeft, yPos, tableLeft + totalWidth, yPos);
-                yPos += 8;
-                
-                // NAME row
-                doc.setFontSize(10);
-                doc.setFont("helvetica", "bold");
-                doc.text("NAME", tableLeft, yPos);
-                doc.setFont("helvetica", "normal");
-                
-                // Names from inspection data
-                doc.text(inspectionData.inspectBy || 'N/A', tableLeft + colWidth, yPos);
-                doc.text(inspectionData.medic || 'N/A', tableLeft + (colWidth * 3), yPos);
-                doc.text(inspectionData.swcwc || 'N/A', tableLeft + (colWidth * 5), yPos);
-                
-                yPos += 8;
-                
-                // SIGNATURE row
-                doc.setFont("helvetica", "bold");
-                doc.text("SIGNATURE", tableLeft, yPos);
-                doc.setFont("helvetica", "normal");
-                
-                // Empty signature cells (for manual signing)
-                doc.text("", tableLeft + colWidth, yPos);
-                doc.text("", tableLeft + (colWidth * 2), yPos);
-                doc.text("", tableLeft + (colWidth * 3), yPos);
-                doc.text("", tableLeft + (colWidth * 4), yPos);
-                doc.text("", tableLeft + (colWidth * 5), yPos);
-                doc.text("", tableLeft + (colWidth * 6), yPos);
-                
-                yPos += 3;
-                
-                // Draw complete table border
-                doc.setLineWidth(0.5);
-                doc.rect(tableLeft, tableTop - 5, totalWidth, yPos - tableTop + 5);
-                
-            } else {
-                // Other vehicles (Fire Truck, RSV, MPRV): 5 columns
-                const totalWidth = colWidth * 5;
-                const tableLeft = (pageWidth - totalWidth) / 2;
-                
-                // Main headers row
-                doc.setFontSize(10);
-                doc.setFont("helvetica", "bold");
-                
-                // Main headers (with empty columns for spacing)
-                doc.text("", tableLeft, yPos);
-                doc.text("INSPECT BY", tableLeft + colWidth, yPos);
-                doc.text("", tableLeft + (colWidth * 2), yPos);
-                doc.text("SWC / WC", tableLeft + (colWidth * 3), yPos);
-                doc.text("", tableLeft + (colWidth * 4), yPos);
-                
-                yPos += 5;
-                
-                // Sub-headers (shift times)
-                doc.setFontSize(9);
-                doc.text("0800-2000", tableLeft + colWidth, yPos);
-                doc.text("2000-0800", tableLeft + (colWidth * 2), yPos);
-                doc.text("0800-2000", tableLeft + (colWidth * 3), yPos);
-                doc.text("2000-0800", tableLeft + (colWidth * 4), yPos);
-                
-                yPos += 5;
-                
-                // Draw horizontal line
-                doc.setLineWidth(0.3);
-                doc.line(tableLeft, yPos, tableLeft + totalWidth, yPos);
-                yPos += 8;
-                
-                // NAME row
-                doc.setFontSize(10);
-                doc.setFont("helvetica", "bold");
-                doc.text("NAME", tableLeft, yPos);
-                doc.setFont("helvetica", "normal");
-                
-                // Names from inspection data
-                doc.text(inspectionData.inspectBy || 'N/A', tableLeft + colWidth, yPos);
-                doc.text(inspectionData.swcwc || 'N/A', tableLeft + (colWidth * 3), yPos);
-                
-                yPos += 8;
-                
-                // SIGNATURE row
-                doc.setFont("helvetica", "bold");
-                doc.text("SIGNATURE", tableLeft, yPos);
-                doc.setFont("helvetica", "normal");
-                
-                // Empty signature cells (for manual signing)
-                doc.text("", tableLeft + colWidth, yPos);
-                doc.text("", tableLeft + (colWidth * 2), yPos);
-                doc.text("", tableLeft + (colWidth * 3), yPos);
-                doc.text("", tableLeft + (colWidth * 4), yPos);
-                
-                yPos += 3;
-                
-                // Draw complete table border
-                doc.setLineWidth(0.5);
-                doc.rect(tableLeft, tableTop - 5, totalWidth, yPos - tableTop + 5);
+                if (docRef.exists) {
+                    const vehicleData = docRef.data();
+                    const dailyData = vehicleData[dailyInspectionKey];
+                    
+                    if (dailyData && dailyData.inspection2000) {
+                        return {
+                            completed: true,
+                            inspectBy: dailyData.inspection2000.inspectBy || '-',
+                            swcwc: dailyData.inspection2000.swcwc || '-',
+                            medic: dailyData.inspection2000.medic || '-'
+                        };
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading 2000 shift data:', error);
             }
             
-            return yPos;
+            return {
+                completed: false,
+                inspectBy: '-',
+                swcwc: '-',
+                medic: '-'
+            };
         }
 
-        function generateShiftPDFContent(doc, dateStr, timeSlot, inspectionData, pageNum) {
+        // ========== FUNGSI GENERATE PDF CONTENT DENGAN INSPECTION DETAILS TABLE ==========
+        async function generateShiftPDFContent(doc, dateStr, timeSlot, inspectionData, pageNum) {
             const vehicleNumber = currentVehicleData.vehicleNumber || currentVehicleData.ambulanceNumber || '';
             const ambulanceType = VEHICLE_AMBULANCE_TYPES[vehicleNumber] || 
                                  currentVehicleData.ambulanceType || 
@@ -2770,8 +2668,127 @@
                 });
             }
             
-            // ========== INSPECTION DETAILS TABLE PADA HAMPAAN TERAKHIR ==========
-            generateInspectionDetailsTablePDF(doc, inspectionData, isAmbulance);
+            // ========== INSPECTION DETAILS TABLE ==========
+            yPos += 10;
+
+            if (yPos > 250) {
+                doc.addPage();
+                yPos = 20;
+            }
+
+            // Dapatkan data untuk kedua-dua shift
+            const inspectionDetails0800 = {
+                completed: timeSlot === '0800' ? true : false,
+                inspectBy: inspectionData.inspectBy || '-',
+                swcwc: inspectionData.swcwc || '-',
+                medic: inspectionData.medic || '-'
+            };
+
+            // Load data untuk shift 2000
+            let inspectionDetails2000 = {
+                completed: false,
+                inspectBy: '-',
+                swcwc: '-',
+                medic: '-'
+            };
+            
+            try {
+                // Try to load 2000 shift data from Firebase
+                if (timeSlot === '0800') {
+                    inspectionDetails2000 = await loadInspection2000Data(dateStr);
+                }
+            } catch (error) {
+                console.log('Using default data for 2000 shift');
+            }
+
+            // Create inspection summary table
+            const inspectionSummaryData = [];
+
+            // Header row
+            inspectionSummaryData.push([
+                { content: "", styles: { fontStyle: 'bold', fillColor: [220, 220, 220] } },
+                { content: "INSPECT BY", styles: { fontStyle: 'bold', fillColor: [220, 220, 220], halign: 'center' } },
+                { content: "", styles: { fontStyle: 'bold', fillColor: [220, 220, 220] } },
+                { content: "SWC/WC", styles: { fontStyle: 'bold', fillColor: [220, 220, 220], halign: 'center' } },
+                { content: "", styles: { fontStyle: 'bold', fillColor: [220, 220, 220] } },
+                { content: "MEDIC", styles: { fontStyle: 'bold', fillColor: [220, 220, 220], halign: 'center' } },
+                { content: "", styles: { fontStyle: 'bold', fillColor: [220, 220, 220] } }
+            ]);
+
+            // Sub-header row
+            inspectionSummaryData.push([
+                { content: "", styles: { fontStyle: 'bold' } },
+                { content: "0800-2000", styles: { fontStyle: 'bold', halign: 'center' } },
+                { content: "2000-0800", styles: { fontStyle: 'bold', halign: 'center' } },
+                { content: "0800-2000", styles: { fontStyle: 'bold', halign: 'center' } },
+                { content: "2000-0800", styles: { fontStyle: 'bold', halign: 'center' } },
+                { content: "0800-2000", styles: { fontStyle: 'bold', halign: 'center' } },
+                { content: "2000-0800", styles: { fontStyle: 'bold', halign: 'center' } }
+            ]);
+
+            // NAME row
+            inspectionSummaryData.push([
+                { content: "NAME", styles: { fontStyle: 'bold' } },
+                { content: inspectionDetails0800.completed ? inspectionDetails0800.inspectBy || "-" : "-", 
+                  styles: { halign: 'center' } },
+                { content: inspectionDetails2000.completed ? inspectionDetails2000.inspectBy || "-" : "-", 
+                  styles: { halign: 'center' } },
+                { content: inspectionDetails0800.completed ? inspectionDetails0800.swcwc || "-" : "-", 
+                  styles: { halign: 'center' } },
+                { content: inspectionDetails2000.completed ? inspectionDetails2000.swcwc || "-" : "-", 
+                  styles: { halign: 'center' } },
+                { content: inspectionDetails0800.completed ? inspectionDetails0800.medic || "-" : "-", 
+                  styles: { halign: 'center' } },
+                { content: inspectionDetails2000.completed ? inspectionDetails2000.medic || "-" : "-", 
+                  styles: { halign: 'center' } }
+            ]);
+
+            // SIGNATURE row - Single line dengan kotak kosong
+            inspectionSummaryData.push([
+                { content: "SIGNATURE", styles: { fontStyle: 'bold' } },
+                { content: "", styles: { minCellHeight: 15 } },
+                { content: "", styles: { minCellHeight: 15 } },
+                { content: "", styles: { minCellHeight: 15 } },
+                { content: "", styles: { minCellHeight: 15 } },
+                { content: "", styles: { minCellHeight: 15 } },
+                { content: "", styles: { minCellHeight: 15 } }
+            ]);
+
+            // Create table dengan jspdf-autotable
+            doc.autoTable({
+                startY: yPos,
+                head: [],
+                body: inspectionSummaryData,
+                theme: 'grid',
+                tableWidth: pageWidth - marginLeft - marginRight,
+                margin: { left: marginLeft },
+                styles: { 
+                    fontSize: 10, 
+                    cellPadding: 3,
+                    minCellHeight: 10,
+                    lineColor: [0, 0, 0],
+                    lineWidth: 0.5
+                },
+                columnStyles: {
+                    0: { cellWidth: 25, fontStyle: 'bold', halign: 'left' },
+                    1: { cellWidth: 25, halign: 'center' },
+                    2: { cellWidth: 25, halign: 'center' },
+                    3: { cellWidth: 25, halign: 'center' },
+                    4: { cellWidth: 25, halign: 'center' },
+                    5: { cellWidth: 25, halign: 'center' },
+                    6: { cellWidth: 25, halign: 'center' }
+                },
+                didDrawPage: function(data) {
+                    // Pastikan border kelihatan
+                    doc.setDrawColor(0, 0, 0);
+                    doc.setLineWidth(0.5);
+                }
+            });
+
+            // Update yPos selepas table
+            yPos = doc.lastAutoTable.finalY + 10;
+
+            return yPos;
         }
 
         function getStatusClass(status) {
