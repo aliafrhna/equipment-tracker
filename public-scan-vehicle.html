@@ -178,7 +178,7 @@
                         <thead>
                             <tr>
                                 <th>INSPECTION ITEM</th>
-                                <th>TICK</th>
+                                <th>STATUS</th>
                                 <th>REMARKS</th>
                             </tr>
                         </thead>
@@ -658,17 +658,17 @@
         }
 
         // Initialize equipment inspection data array (CHECKBOX sahaja)
-    function initializeEquipmentInspectionData() {
-    return equipmentInspectionItems.map(item => {
-        return {
-            name: item.name,
-            qty: item.qty,
-            type: "checkbox",
-            checked: false,  // Changed from currentQty to checked
-            remarks: ""
-        };
-    });
-}
+        function initializeEquipmentInspectionData() {
+            return equipmentInspectionItems.map(item => {
+                return {
+                    name: item.name,
+                    qty: item.qty,
+                    type: "checkbox",
+                    checked: false,  // Changed from currentQty to checked
+                    remarks: ""
+                };
+            });
+        }
 
         // Determine fire truck type
         function determineFireTruckType(vehicleNumber) {
@@ -915,67 +915,65 @@
         }
 
         // Populate Equipment Inspection Table dengan CHECKBOX sahaja
-function populateEquipmentInspectionTable() {
-    const tableBody = document.getElementById('equipmentInspectionTableBody');
-    
-    let currentData = [];
-    if (currentInspectionTime === '0800-2000') {
-        currentData = inspectionDetails0800.equipmentInspectionData;
-    } else if (currentInspectionTime === '2000-0800') {
-        currentData = inspectionDetails2000.equipmentInspectionData;
-    } else {
-        currentData = equipmentInspectionData;
-    }
-    
-    let html = '';
-    
-    currentData.forEach((item, index) => {
-        html += `
-            <tr>
-                <td><strong>${item.name}</strong></td>
-                <td style="text-align: center;"><strong>${item.qty}</strong></td>
-                <td style="text-align: center;">
-                    <input type="checkbox" 
-                           class="equipment-checkbox"
-                           id="equipment-checkbox-${index}"
-                           data-index="${index}"
-                           ${item.checked ? 'checked' : ''}
-                           onchange="updateEquipmentCheckbox(${index}, this.checked)">
-                </td>
-                <td>
-                    <textarea 
-                        class="remarks-input"
-                        id="equipment-remarks-${index}"
-                        data-index="${index}"
-                        onchange="updateEquipmentRemarks(${index}, this.value)"
-                        placeholder="Enter remarks..."
-                        rows="1">${item.remarks || ''}</textarea>
-                </td>
-            </tr>
-        `;
-    });
-    
-    tableBody.innerHTML = html;
-}
+        function populateEquipmentInspectionTable() {
+            const tableBody = document.getElementById('equipmentInspectionTableBody');
+            
+            let currentData = [];
+            if (currentInspectionTime === '0800-2000') {
+                currentData = inspectionDetails0800.equipmentInspectionData;
+            } else if (currentInspectionTime === '2000-0800') {
+                currentData = inspectionDetails2000.equipmentInspectionData;
+            } else {
+                currentData = equipmentInspectionData;
+            }
+            
+            let html = '';
+            
+            currentData.forEach((item, index) => {
+                html += `
+                    <tr>
+                        <td><strong>${item.name}</strong></td>
+                        <td style="text-align: center;"><strong>${item.qty}</strong></td>
+                        <td style="text-align: center;">
+                            <input type="checkbox" 
+                                   class="equipment-checkbox"
+                                   id="equipment-checkbox-${index}"
+                                   data-index="${index}"
+                                   ${item.checked ? 'checked' : ''}
+                                   onchange="updateEquipmentCheckbox(${index}, this.checked)">
+                        </td>
+                        <td>
+                            <textarea 
+                                class="remarks-input"
+                                id="equipment-remarks-${index}"
+                                data-index="${index}"
+                                onchange="updateEquipmentRemarks(${index}, this.value)"
+                                placeholder="Enter remarks..."
+                                rows="1">${item.remarks || ''}</textarea>
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            tableBody.innerHTML = html;
+        }
 
-           // Update function untuk equipment checkbox
-function updateEquipmentCheckbox(index, isChecked) {
-    if (!currentInspectionTime) {
-        alert('Please select inspection time first');
-        return;
-    }
-    
-    let currentData = currentInspectionTime === '0800-2000' ? 
-        inspectionDetails0800.equipmentInspectionData : 
-        inspectionDetails2000.equipmentInspectionData;
-    
-    if (currentData[index]) {
-        currentData[index].checked = isChecked;
-        console.log(`📝 Updated ${currentData[index].name} checkbox to: ${isChecked}`);
-    }
-}     
-
-
+        // Update function untuk equipment checkbox
+        function updateEquipmentCheckbox(index, isChecked) {
+            if (!currentInspectionTime) {
+                alert('Please select inspection time first');
+                return;
+            }
+            
+            let currentData = currentInspectionTime === '0800-2000' ? 
+                inspectionDetails0800.equipmentInspectionData : 
+                inspectionDetails2000.equipmentInspectionData;
+            
+            if (currentData[index]) {
+                currentData[index].checked = isChecked;
+                console.log(`📝 Updated ${currentData[index].name} checkbox to: ${isChecked}`);
+            }
+        }     
 
         // Update functions untuk checkbox dan textfield
         function updateVehicleCheckbox(index, isChecked) {
@@ -1023,7 +1021,7 @@ function updateEquipmentCheckbox(index, isChecked) {
             }
         }
 
-        function updateEquipmentQty(index, value) {
+        function updateEquipmentRemarks(index, value) {
             if (!currentInspectionTime) {
                 alert('Please select inspection time first');
                 return;
@@ -1034,24 +1032,9 @@ function updateEquipmentCheckbox(index, isChecked) {
                 inspectionDetails2000.equipmentInspectionData;
             
             if (currentData[index]) {
-                currentData[index].currentQty = parseInt(value) || 0;
+                currentData[index].remarks = value;
             }
         }
-
-        function updateEquipmentRemarks(index, value) {
-    if (!currentInspectionTime) {
-        alert('Please select inspection time first');
-        return;
-    }
-    
-    let currentData = currentInspectionTime === '0800-2000' ? 
-        inspectionDetails0800.equipmentInspectionData : 
-        inspectionDetails2000.equipmentInspectionData;
-    
-    if (currentData[index]) {
-        currentData[index].remarks = value;
-    }
-}
 
         function showVehicleInspectionSection() {
             if (!currentInspectionTime) {
@@ -1128,7 +1111,7 @@ function updateEquipmentCheckbox(index, isChecked) {
             backToMainActions();
         }
 
-        // PDF function untuk Fire Truck (updated untuk tiada driver)
+        // PDF function untuk Fire Truck (FIXED LAYOUT)
         function saveAsPDF() {
             if (!window.jspdf) {
                 alert('PDF library not loaded. Please check internet connection.');
@@ -1152,32 +1135,35 @@ function updateEquipmentCheckbox(index, isChecked) {
                 doc.setFontSize(14);
                 doc.text("FIRE TRUCK INSPECTION CHECKLIST", pageWidth/2, 22, { align: "center" });
                 
-                // ========== VEHICLE INFORMATION ==========
+                // ========== VEHICLE INFORMATION (FIXED LAYOUT) ==========
                 let yPos = 35;
                 
                 // Line 1: FIRE TRUCK TYPE
                 doc.setFontSize(12);
                 doc.setFont("helvetica", "bold");
-                doc.text("FIRE TRUCK TYPE : ", marginLeft, yPos);
+                doc.text("FIRE TRUCK TYPE:", marginLeft, yPos);
                 doc.setFont("helvetica", "normal");
-                doc.text(fireTruckType || 'RSV', marginLeft + 40, yPos);
-                
+                // Move fire truck type value further to the right
+                doc.text(fireTruckType || 'RSV', marginLeft + 55, yPos);
+
                 // Line 2: DATE and VEHICLE NUMBER
                 yPos += 7;
-                
+
                 const now = new Date();
                 const monthYear = now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }).toUpperCase();
-                
+
+                // DATE - Left side
                 doc.setFont("helvetica", "bold");
                 doc.text("DATE:", marginLeft, yPos);
                 doc.setFont("helvetica", "normal");
-                doc.text(monthYear, marginLeft + 15, yPos);
-                
+                doc.text(monthYear, marginLeft + 18, yPos);
+
+                // VEHICLE NUMBER - Right side (aligned with fire truck type)
                 doc.setFont("helvetica", "bold");
-                doc.text("VEHICLE NUMBER", marginLeft + 60, yPos);
+                doc.text("VEHICLE NUMBER:", marginLeft + 100, yPos);
                 doc.setFont("helvetica", "normal");
                 const vehicleNumber = document.getElementById('vehicleNumber')?.textContent || 'JLN1234';
-                doc.text(vehicleNumber, marginLeft + 90, yPos);
+                doc.text(vehicleNumber, marginLeft + 140, yPos);
                 
                 // Line 3: TIME, NAME, SHIFT
                 yPos += 7;
@@ -1207,8 +1193,8 @@ function updateEquipmentCheckbox(index, isChecked) {
                 doc.setFont("helvetica", "bold");
                 
                 // Column headers
-                doc.text("TIME", marginLeft, yPos);
-                doc.text("INSPECTION CHECKLIST", marginLeft + 15, yPos);
+                doc.text("NO.", marginLeft, yPos);
+                doc.text("INSPECTION CHECKLIST", marginLeft + 10, yPos);
                 doc.text("0800-2000", marginLeft + 90, yPos);
                 doc.text("2000-0800", marginLeft + 115, yPos);
                 
@@ -1288,8 +1274,8 @@ function updateEquipmentCheckbox(index, isChecked) {
                         yPos = 20;
                         doc.setFontSize(11);
                         doc.setFont("helvetica", "bold");
-                        doc.text("TIME", marginLeft, yPos);
-                        doc.text("INSPECTION CHECKLIST", marginLeft + 15, yPos);
+                        doc.text("NO.", marginLeft, yPos);
+                        doc.text("INSPECTION CHECKLIST", marginLeft + 10, yPos);
                         doc.text("0800-2000", marginLeft + 90, yPos);
                         doc.text("2000-0800", marginLeft + 115, yPos);
                         yPos += 8;
@@ -1333,22 +1319,22 @@ function updateEquipmentCheckbox(index, isChecked) {
                     doc.text(item.qty, marginLeft + 95, yPos, { align: "center" });
                     
                     // 0800-2000 current quantity (CHECKBOX)
-const data0800 = equipmentData0800[index];
-let value0800 = ""; // Kosong jika tidak dicentang
+                    const data0800 = equipmentData0800[index];
+                    let value0800 = ""; // Kosong jika tidak dicentang
 
-if (data0800) {
-    value0800 = data0800.checked ? "OK" : ""; // Tunjukkan "OK" jika dicentang
-}
-doc.text(value0800, marginLeft + 110, yPos, { align: "center" });
+                    if (data0800) {
+                        value0800 = data0800.checked ? "OK" : ""; // Tunjukkan "OK" jika dicentang
+                    }
+                    doc.text(value0800, marginLeft + 110, yPos, { align: "center" });
 
-// 2000-0800 current quantity (CHECKBOX)
-const data2000 = equipmentData2000[index];
-let value2000 = ""; // Kosong jika tidak dicentang
+                    // 2000-0800 current quantity (CHECKBOX)
+                    const data2000 = equipmentData2000[index];
+                    let value2000 = ""; // Kosong jika tidak dicentang
 
-if (data2000) {
-    value2000 = data2000.checked ? "OK" : ""; // Tunjukkan "OK" jika dicentang
-}
-doc.text(value2000, marginLeft + 135, yPos, { align: "center" });
+                    if (data2000) {
+                        value2000 = data2000.checked ? "OK" : ""; // Tunjukkan "OK" jika dicentang
+                    }
+                    doc.text(value2000, marginLeft + 135, yPos, { align: "center" });
                     
                     yPos += 5;
                     
