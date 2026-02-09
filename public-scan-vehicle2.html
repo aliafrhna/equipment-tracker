@@ -173,7 +173,7 @@
                     <i class="fas fa-arrow-left"></i> Back
                 </button>
                 
-                <h3><i class="fas fa-clipboard-check"></i> Vehicle Inspection Checklist 
+                <h3><i class="fas fa-clipboard-check"></i> Vehicle Inspection 
                     <span id="currentTimeIndicator" class="time-selector-indicator"></span>
                 </h3>
                 
@@ -181,9 +181,10 @@
                     <table class="equipment-table">
                         <thead>
                             <tr>
-                                <th>INSPECTION ITEM</th>
-                                <th>CHECKBOX / TEXTFIELD</th>
-                                <th>REMARKS</th>
+                                <th style="width: 10%">NO.</th>
+                                <th style="width: 40%">INSPECTION ITEM</th>
+                                <th style="width: 20%">STATUS</th>
+                                <th style="width: 30%">REMARKS</th>
                             </tr>
                         </thead>
                         <tbody id="vehicleInspectionTableBody">
@@ -199,7 +200,7 @@
                     <i class="fas fa-arrow-left"></i> Back
                 </button>
                 
-                <h3><i class="fas fa-clipboard-check"></i> Inspection Checklist for Medical Response
+                <h3><i class="fas fa-clipboard-check"></i> Medical Response Inspection
                     <span id="medicalTimeIndicator" class="time-selector-indicator"></span>
                 </h3>
                 
@@ -207,9 +208,10 @@
                     <table class="equipment-table">
                         <thead>
                             <tr>
-                                <th>INSPECTION ITEM</th>
-                                <th>CHECKBOX / TEXTFIELD</th>
-                                <th>REMARKS</th>
+                                <th style="width: 10%">NO.</th>
+                                <th style="width: 40%">INSPECTION ITEM</th>
+                                <th style="width: 20%">STATUS</th>
+                                <th style="width: 30%">REMARKS</th>
                             </tr>
                         </thead>
                         <tbody id="medicalInspectionTableBody">
@@ -710,29 +712,36 @@
             });
         }
 
+        
         // Tentukan ambulance type
         function determineAmbulanceType(vehicleNumber) {
-    const normalized = vehicleNumber.toUpperCase().trim();
-    
-    // Map vehicle number ke ambulance type
-    const ambulanceMapping = {
-        'CCF6941': 'AB1',
-        'TDC5994': 'AB4'
-        // Tambahkan mapping lain di sini jika perlu
-    };
-    
-    // Jika vehicle number ada dalam mapping, gunakan value tersebut
-    if (ambulanceMapping[normalized]) {
-        return ambulanceMapping[normalized];
-    }
-    
-    // Fallback ke logic lama jika vehicle tidak dalam mapping
-    if (normalized.includes('AB4')) {
-        return 'AB4';
-    } else {
-        return 'AB1';
-    }
-}
+            const normalized = vehicleNumber.toUpperCase().trim();
+            
+            console.log(`🔍 Checking ambulance type for: ${normalized}`);
+            
+            // Map vehicle number ke ambulance type
+            const ambulanceMapping = {
+                'CCF6941': 'AB1',
+                'TDC5994': 'AB4'
+                // Tambahkan mapping lain di sini jika perlu
+            };
+            
+            // Jika vehicle number ada dalam mapping, gunakan value tersebut
+            if (ambulanceMapping[normalized]) {
+                console.log(`✅ Vehicle ${normalized} mapped to: ${ambulanceMapping[normalized]}`);
+                return ambulanceMapping[normalized];
+            }
+            
+            // Fallback ke logic lama jika vehicle tidak dalam mapping
+            console.log(`ℹ️ Vehicle ${normalized} not in mapping, using fallback logic`);
+            
+            // Logic lama
+            if (normalized.includes('AB4') || normalized.includes('4')) {
+                return 'AB4';
+            } else {
+                return 'AB1';
+            }
+        }
 
         // FIXED: Check if inspection details are needed for ACTIVE SHIFT only
         function checkAndShowInspectionModal() {
@@ -878,7 +887,7 @@
             document.getElementById('vehicleType').textContent = data.vehicleType || '-';
         }
 
-        // Populate Vehicle Inspection Table
+        // Populate Vehicle Inspection Table - UBAH: TIME jadi NO.
         function populateVehicleInspectionTable() {
             const tableBody = document.getElementById('vehicleInspectionTableBody');
             
@@ -900,8 +909,11 @@
                 
                 html += `
                     <tr class="${isTextField ? 'textfield-item' : ''}">
+                        <td style="text-align: center; vertical-align: middle;">
+                            <strong>${index + 1}</strong>
+                        </td>
                         <td><strong>${item.name}</strong></td>
-                        <td style="text-align: center;">
+                        <td style="text-align: center; vertical-align: middle;">
                 `;
                 
                 if (isTextField) {
@@ -913,7 +925,7 @@
                                    value="${item.value || ''}"
                                    placeholder="${isFuelLevel ? 'e.g., 75%, FULL' : 'e.g., 12345 km'}"
                                    onchange="updateVehicleTextField(${index}, this.value)"
-                                   style="width: 150px;">
+                                   style="width: 150px; padding: 5px;">
                     `;
                 } else {
                     html += `
@@ -935,7 +947,8 @@
                                 data-index="${index}"
                                 onchange="updateVehicleRemarks(${index}, this.value)"
                                 placeholder="Enter remarks..."
-                                rows="1">${item.remarks || ''}</textarea>
+                                rows="1"
+                                style="width: 100%; min-height: 40px; padding: 5px; box-sizing: border-box;">${item.remarks || ''}</textarea>
                         </td>
                     </tr>
                 `;
@@ -944,7 +957,7 @@
             tableBody.innerHTML = html;
         }
 
-        // Populate Medical Inspection Table
+        // Populate Medical Inspection Table - UBAH: TIME jadi NO.
         function populateMedicalInspectionTable() {
             const tableBody = document.getElementById('medicalInspectionTableBody');
             
@@ -967,8 +980,11 @@
                 
                 html += `
                     <tr class="${isTextField ? 'oxygen-item' : ''}">
+                        <td style="text-align: center; vertical-align: middle;">
+                            <strong>${index + 1}</strong>
+                        </td>
                         <td><strong>${item.name}</strong> <span style="color: #666; font-size: 0.9em;">(Qty: ${item.qty})</span></td>
-                        <td style="text-align: center;">
+                        <td style="text-align: center; vertical-align: middle;">
                 `;
                 
                 if (isTextField) {
@@ -980,7 +996,7 @@
                                    value="${item.value || ''}"
                                    placeholder="e.g., 75%"
                                    onchange="updateMedicalTextField(${index}, this.value)"
-                                   style="width: 120px;">
+                                   style="width: 120px; padding: 5px;">
                             <div style="font-size: 11px; color: #666; margin-top: 3px;">
                                 MIN 25% required
                             </div>
@@ -1005,7 +1021,8 @@
                                 data-index="${index}"
                                 onchange="updateMedicalRemarks(${index}, this.value)"
                                 placeholder="Enter remarks..."
-                                rows="1">${item.remarks || ''}</textarea>
+                                rows="1"
+                                style="width: 100%; min-height: 40px; padding: 5px; box-sizing: border-box;">${item.remarks || ''}</textarea>
                         </td>
                     </tr>
                 `;
@@ -1180,7 +1197,7 @@
             backToMainActions();
         }
 
-        // PDF function tetap sama seperti sebelumnya
+        // PDF function dengan semua pembetulan
         function saveAsPDF() {
             if (!window.jspdf) {
                 alert('PDF library not loaded. Please check internet connection.');
@@ -1207,29 +1224,33 @@
                 // ========== VEHICLE INFORMATION ==========
                 let yPos = 35;
                 
+                
                 // Line 1: AMBULANCE TYPE
-                doc.setFontSize(12);
-                doc.setFont("helvetica", "bold");
-                doc.text("AMBULANCE TYPE : ", marginLeft, yPos);
-                doc.setFont("helvetica", "normal");
-                doc.text(ambulanceType === 'AB4' ? 'AB4' : 'AB1', marginLeft + 40, yPos);
-                
-                // Line 2: DATE and VEHICLE NUMBER
-                yPos += 7;
-                
-                const now = new Date();
-                const monthYear = now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }).toUpperCase();
-                
-                doc.setFont("helvetica", "bold");
-                doc.text("DATE:", marginLeft, yPos);
-                doc.setFont("helvetica", "normal");
-                doc.text(monthYear, marginLeft + 15, yPos);
-                
-                doc.setFont("helvetica", "bold");
-                doc.text("VEHICLE NUMBER", marginLeft + 60, yPos);
-                doc.setFont("helvetica", "normal");
-                const vehicleNumber = document.getElementById('vehicleNumber')?.textContent || 'CCF6941';
-                doc.text(vehicleNumber, marginLeft + 90, yPos);
+doc.setFontSize(12);
+doc.setFont("helvetica", "bold");
+doc.text("AMBULANCE TYPE:", marginLeft, yPos);
+doc.setFont("helvetica", "normal");
+// Move ambulance type value further to the right
+doc.text(ambulanceType === 'AB4' ? 'AB4' : 'AB1', marginLeft + 55, yPos);
+
+// Line 2: DATE and VEHICLE NUMBER
+yPos += 7;
+
+const now = new Date();
+const monthYear = now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }).toUpperCase();
+
+// DATE - Left side
+doc.setFont("helvetica", "bold");
+doc.text("DATE:", marginLeft, yPos);
+doc.setFont("helvetica", "normal");
+doc.text(monthYear, marginLeft + 18, yPos);
+
+// VEHICLE NUMBER - Right side (aligned with ambulance type)
+doc.setFont("helvetica", "bold");
+doc.text("VEHICLE NUMBER:", marginLeft + 100, yPos); // Moved further right
+doc.setFont("helvetica", "normal");
+const vehicleNumber = document.getElementById('vehicleNumber')?.textContent || 'CCF6941';
+doc.text(vehicleNumber, marginLeft + 140, yPos); // Moved further right
                 
                 // Line 3: TIME, NAME, SHIFT
                 yPos += 7;
@@ -1254,13 +1275,13 @@
                 yPos += 15;
                 
                 // ========== VEHICLE INSPECTION TABLE ==========
-                // Table Header
+                // Table Header - UBAH: TIME jadi NO.
                 doc.setFontSize(11);
                 doc.setFont("helvetica", "bold");
                 
-                // Column headers
-                doc.text("TIME", marginLeft, yPos);
-                doc.text("INSPECTION CHECKLIST", marginLeft + 15, yPos);
+                // Column headers - UBAH: TIME jadi NO.
+                doc.text("NO.", marginLeft, yPos);
+                doc.text("INSPECTION ITEM", marginLeft + 10, yPos); // UBAH: Tajuk lebih pendek
                 doc.text("0800-2000", marginLeft + 90, yPos);
                 doc.text("2000-0800", marginLeft + 115, yPos);
                 
@@ -1275,9 +1296,9 @@
                 const vehicleData0800 = inspectionDetails0800.vehicleInspectionData;
                 const vehicleData2000 = inspectionDetails2000.vehicleInspectionData;
                 
-                // Vehicle Inspection Items
+                // Vehicle Inspection Items - UBAH: Paparkan NO. bukan TIME
                 vehicleInspectionItems.forEach((item, index) => {
-                    // Number
+                    // Number - UBAH: Paparkan nombor
                     doc.setFont("helvetica", "normal");
                     doc.setFontSize(10);
                     doc.text(`${index + 1}.`, marginLeft, yPos);
@@ -1328,8 +1349,8 @@
                         yPos = 20;
                         doc.setFontSize(11);
                         doc.setFont("helvetica", "bold");
-                        doc.text("TIME", marginLeft, yPos);
-                        doc.text("INSPECTION CHECKLIST", marginLeft + 15, yPos);
+                        doc.text("NO.", marginLeft, yPos);
+                        doc.text("INSPECTION ITEM", marginLeft + 10, yPos);
                         doc.text("0800-2000", marginLeft + 90, yPos);
                         doc.text("2000-0800", marginLeft + 115, yPos);
                         yPos += 8;
@@ -1339,25 +1360,25 @@
                 // ========== MEDICAL RESPONSE INSPECTION TABLE ==========
                 yPos += 10;
                 
-                // Medical Response Header
+                // Medical Response Header - UBAH: Tajuk lebih pendek
                 doc.setFontSize(11);
                 doc.setFont("helvetica", "bold");
-                doc.text("INSPECTION CHECKLIST FOR MEDICAL RESPONSE", marginLeft, yPos);
-                doc.text("QTY", marginLeft + 90, yPos);
-                doc.text("0800-2000", marginLeft + 105, yPos);
-                doc.text("2000-0800", marginLeft + 130, yPos);
+                doc.text("MEDICAL RESPONSE INSPECTION", marginLeft, yPos);
+                doc.text("QTY", marginLeft + 85, yPos);
+                doc.text("0800-2000", marginLeft + 100, yPos);
+                doc.text("2000-0800", marginLeft + 125, yPos);
                 
                 yPos += 3;
                 doc.line(marginLeft, yPos, pageWidth - marginRight, yPos);
                 yPos += 5;
                 
-                // Medical Inspection Items
+                // Medical Inspection Items - UBAH: Paparkan NO. bukan TIME
                 const medicalItems = ambulanceType === 'AB4' ? medicalInspectionItemsAB4 : medicalInspectionItemsAB1;
                 const medicalData0800 = inspectionDetails0800.medicalInspectionData;
                 const medicalData2000 = inspectionDetails2000.medicalInspectionData;
                 
                 medicalItems.forEach((item, index) => {
-                    // Number
+                    // Number - UBAH: Paparkan nombor
                     doc.setFont("helvetica", "normal");
                     doc.setFontSize(10);
                     doc.text(`${index + 1}.`, marginLeft, yPos);
@@ -1371,7 +1392,7 @@
                     doc.text(itemName, marginLeft + 10, yPos);
                     
                     // Quantity
-                    doc.text(item.qty, marginLeft + 95, yPos, { align: "center" });
+                    doc.text(item.qty, marginLeft + 90, yPos, { align: "center" });
                     
                     // 0800-2000 value
                     const data0800 = medicalData0800[index];
@@ -1384,7 +1405,7 @@
                             value0800 = data0800.checked ? "OK" : "BROKEN";
                         }
                     }
-                    doc.text(value0800, marginLeft + 110, yPos, { align: "center" });
+                    doc.text(value0800, marginLeft + 105, yPos, { align: "center" });
                     
                     // 2000-0800 value
                     const data2000 = medicalData2000[index];
@@ -1397,7 +1418,7 @@
                             value2000 = data2000.checked ? "OK" : "BROKEN";
                         }
                     }
-                    doc.text(value2000, marginLeft + 135, yPos, { align: "center" });
+                    doc.text(value2000, marginLeft + 130, yPos, { align: "center" });
                     
                     yPos += 5;
                     
@@ -1407,10 +1428,10 @@
                         yPos = 20;
                         doc.setFontSize(11);
                         doc.setFont("helvetica", "bold");
-                        doc.text("INSPECTION CHECKLIST FOR MEDICAL RESPONSE", marginLeft, yPos);
-                        doc.text("QTY", marginLeft + 90, yPos);
-                        doc.text("0800-2000", marginLeft + 105, yPos);
-                        doc.text("2000-0800", marginLeft + 130, yPos);
+                        doc.text("MEDICAL RESPONSE INSPECTION", marginLeft, yPos);
+                        doc.text("QTY", marginLeft + 85, yPos);
+                        doc.text("0800-2000", marginLeft + 100, yPos);
+                        doc.text("2000-0800", marginLeft + 125, yPos);
                         yPos += 8;
                     }
                 });
@@ -1454,7 +1475,7 @@
                     { content: inspectionDetails2000.completed ? inspectionDetails2000.medic || "-" : "-", styles: { halign: 'center' } }
                 ]);
                 
-                // SIGNATURE row
+                // SIGNATURE row - UBAH: Hanya "SIGNATURE" tanpa asterisk, satu baris sahaja
                 inspectionSummaryData.push([
                     { content: "SIGNATURE", styles: { fontStyle: 'bold' } },
                     { content: "", styles: { minCellHeight: 15 } },
