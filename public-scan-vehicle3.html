@@ -175,7 +175,7 @@
                         <thead>
                             <tr>
                                 <th>INSPECTION ITEM</th>
-                                <th>CHECKBOX</th>
+                                <th>STATUS</th>
                                 <th>REMARKS</th>
                             </tr>
                         </thead>
@@ -909,236 +909,239 @@
             backToMainActions();
         }
 
+        
         // PDF function - UPDATED (NO MEDIC IN PDF)
-        function saveAsPDF() {
-            if (!window.jspdf) {
-                alert('PDF library not loaded. Please check internet connection.');
-                return;
-            }
+function saveAsPDF() {
+    if (!window.jspdf) {
+        alert('PDF library not loaded. Please check internet connection.');
+        return;
+    }
+    
+    try {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF('p', 'mm', 'a4');
+        
+        // Set margins
+        const marginLeft = 10;
+        const marginRight = 10;
+        const pageWidth = doc.internal.pageSize.width;
+        
+        // ========== HEADER SECTION ==========
+        doc.setFontSize(16);
+        doc.setFont("helvetica", "bold");
+        doc.text("CENTRAL EMERGENCY & FIRE SERVICES RESPONSE", pageWidth/2, 15, { align: "center" });
+        
+        doc.setFontSize(14);
+        doc.text("VEHICLES & EQUIPMENT CHECKLIST", pageWidth/2, 22, { align: "center" });
+        
+        // ========== VEHICLE INFORMATION ==========
+        let yPos = 35;
+        
+        // Line 1: MPRV TYPE
+        doc.setFontSize(12);
+        doc.setFont("helvetica", "bold");
+        doc.text("MPRV TYPE : ", marginLeft, yPos);
+        doc.setFont("helvetica", "normal");
+        doc.text('S3', marginLeft + 35, yPos);
+        
+        // Line 2: DATE and VEHICLE NUMBER
+        yPos += 7;
+        
+        const now = new Date();
+        const monthYear = now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }).toUpperCase();
+        
+        doc.setFont("helvetica", "bold");
+        doc.text("DATE : ", marginLeft, yPos);
+        doc.setFont("helvetica", "normal");
+        doc.text(monthYear, marginLeft + 20, yPos);
+        
+        doc.setFont("helvetica", "bold");
+doc.text("VEHICLE NUMBER : ", marginLeft + 60, yPos);
+doc.setFont("helvetica", "normal");
+const vehicleNumber = document.getElementById('vehicleNumber')?.textContent || 'N/A';
+
+// TAMBAH JARAK untuk elak pertindihan - dari 90 ke 100 atau lebih
+doc.text(vehicleNumber, marginLeft + 105, yPos); // Diubah dari 90 ke 100
+        
+        // Line 3: TIME, NAME, SHIFT
+        yPos += 7;
+        
+        doc.setFont("helvetica", "bold");
+        doc.text("TIME : ", marginLeft, yPos);
+        doc.setFont("helvetica", "normal");
+        doc.text("0800 - 2000", marginLeft + 18, yPos);
+        
+        doc.setFont("helvetica", "bold");
+        doc.text("NAME : ", marginLeft + 45, yPos);
+        doc.setFont("helvetica", "normal");
+        const inspectName = inspectionDetails0800?.inspectBy || inspectionDetails2000?.inspectBy || "N/A";
+        doc.text(inspectName, marginLeft + 62, yPos);
+        
+        doc.setFont("helvetica", "bold");
+        doc.text("SHIFT : ", marginLeft + 90, yPos);
+        doc.setFont("helvetica", "normal");
+        const shiftValue = inspectionDetails0800?.shift || inspectionDetails2000?.shift || "N/A";
+        doc.text(shiftValue, marginLeft + 105, yPos);
+        
+        yPos += 15;
+        
+        // ========== VEHICLE INSPECTION TABLE ==========
+        // Table Header
+        doc.setFontSize(11);
+        doc.setFont("helvetica", "bold");
+        
+        // Column headers
+        doc.text("TIME", marginLeft, yPos);
+        doc.text("INSPECTION CHECKLIST", marginLeft + 15, yPos);
+        doc.text("0800-2000", marginLeft + 90, yPos);
+        doc.text("2000-0800", marginLeft + 115, yPos);
+        
+        // Draw header line
+        yPos += 3;
+        doc.setLineWidth(0.5);
+        doc.line(marginLeft, yPos, pageWidth - marginRight, yPos);
+        
+        yPos += 5;
+        
+        // Get inspection data
+        const vehicleData0800 = inspectionDetails0800.vehicleInspectionData;
+        const vehicleData2000 = inspectionDetails2000.vehicleInspectionData;
+        
+        // Vehicle Inspection Items
+        vehicleInspectionItems.forEach((item, index) => {
+            // Number
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(10);
+            doc.text(`${index + 1}.`, marginLeft, yPos);
             
-            try {
-                const { jsPDF } = window.jspdf;
-                const doc = new jsPDF('p', 'mm', 'a4');
-                
-                // Set margins
-                const marginLeft = 10;
-                const marginRight = 10;
-                const pageWidth = doc.internal.pageSize.width;
-                
-                // ========== HEADER SECTION ==========
-                doc.setFontSize(16);
-                doc.setFont("helvetica", "bold");
-                doc.text("CENTRAL EMERGENCY & FIRE SERVICES RESPONSE", pageWidth/2, 15, { align: "center" });
-                
-                doc.setFontSize(14);
-                doc.text("VEHICLES & EQUIPMENT CHECKLIST", pageWidth/2, 22, { align: "center" });
-                
-                // ========== VEHICLE INFORMATION ==========
-                let yPos = 35;
-                
-                // Line 1: MPRV TYPE
-                doc.setFontSize(12);
-                doc.setFont("helvetica", "bold");
-                doc.text("MPRV TYPE : ", marginLeft, yPos);
-                doc.setFont("helvetica", "normal");
-                doc.text('S3', marginLeft + 35, yPos);
-                
-                // Line 2: DATE and VEHICLE NUMBER
-                yPos += 7;
-                
-                const now = new Date();
-                const monthYear = now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }).toUpperCase();
-                
-                doc.setFont("helvetica", "bold");
-                doc.text("DATE:", marginLeft, yPos);
-                doc.setFont("helvetica", "normal");
-                doc.text(monthYear, marginLeft + 15, yPos);
-                
-                doc.setFont("helvetica", "bold");
-                doc.text("VEHICLE NUMBER", marginLeft + 60, yPos);
-                doc.setFont("helvetica", "normal");
-                const vehicleNumber = document.getElementById('vehicleNumber')?.textContent || 'N/A';
-                doc.text(vehicleNumber, marginLeft + 90, yPos);
-                
-                // Line 3: TIME, NAME, SHIFT
-                yPos += 7;
-                
-                doc.setFont("helvetica", "bold");
-                doc.text("TIME:", marginLeft, yPos);
-                doc.setFont("helvetica", "normal");
-                doc.text("0800 - 2000", marginLeft + 15, yPos);
-                
-                doc.setFont("helvetica", "bold");
-                doc.text("NAME:", marginLeft + 45, yPos);
-                doc.setFont("helvetica", "normal");
-                const inspectName = inspectionDetails0800?.inspectBy || inspectionDetails2000?.inspectBy || "N/A";
-                doc.text(inspectName, marginLeft + 60, yPos);
-                
-                doc.setFont("helvetica", "bold");
-                doc.text("SHIFT:", marginLeft + 90, yPos);
-                doc.setFont("helvetica", "normal");
-                const shiftValue = inspectionDetails0800?.shift || inspectionDetails2000?.shift || "N/A";
-                doc.text(shiftValue, marginLeft + 105, yPos);
-                
-                yPos += 15;
-                
-                // ========== VEHICLE INSPECTION TABLE ==========
-                // Table Header
+            // Item name
+            const itemName = item.name.length > 25 ? item.name.substring(0, 25) + "..." : item.name;
+            doc.text(itemName, marginLeft + 10, yPos);
+            
+            // 0800-2000 value
+            const data0800 = vehicleData0800[index];
+            let value0800 = "BROKEN";
+            
+            if (data0800) {
+                if (item.type === "textfield") {
+                    if (item.name === "FUEL LEVEL") {
+                        value0800 = data0800.value ? `${data0800.value}%` : "BROKEN";
+                    } else if (item.name === "MILLAGE / ODOMETER") {
+                        value0800 = data0800.value ? data0800.value : "BROKEN";
+                    }
+                } else {
+                    value0800 = data0800.checked ? "OK" : "BROKEN";
+                }
+            }
+            doc.text(value0800, marginLeft + 95, yPos, { align: "center" });
+            
+            // 2000-0800 value
+            const data2000 = vehicleData2000[index];
+            let value2000 = "BROKEN";
+            
+            if (data2000) {
+                if (item.type === "textfield") {
+                    if (item.name === "FUEL LEVEL") {
+                        value2000 = data2000.value ? `${data2000.value}%` : "BROKEN";
+                    } else if (item.name === "MILLAGE / ODOMETER") {
+                        value2000 = data2000.value ? data2000.value : "BROKEN";
+                    }
+                } else {
+                    value2000 = data2000.checked ? "OK" : "BROKEN";
+                }
+            }
+            doc.text(value2000, marginLeft + 120, yPos, { align: "center" });
+            
+            yPos += 5;
+            
+            // Page break handling
+            if (yPos > 270 && index < vehicleInspectionItems.length - 1) {
+                doc.addPage();
+                yPos = 20;
                 doc.setFontSize(11);
                 doc.setFont("helvetica", "bold");
-                
-                // Column headers
                 doc.text("TIME", marginLeft, yPos);
                 doc.text("INSPECTION CHECKLIST", marginLeft + 15, yPos);
                 doc.text("0800-2000", marginLeft + 90, yPos);
                 doc.text("2000-0800", marginLeft + 115, yPos);
-                
-                // Draw header line
-                yPos += 3;
-                doc.setLineWidth(0.5);
-                doc.line(marginLeft, yPos, pageWidth - marginRight, yPos);
-                
-                yPos += 5;
-                
-                // Get inspection data
-                const vehicleData0800 = inspectionDetails0800.vehicleInspectionData;
-                const vehicleData2000 = inspectionDetails2000.vehicleInspectionData;
-                
-                // Vehicle Inspection Items
-                vehicleInspectionItems.forEach((item, index) => {
-                    // Number
-                    doc.setFont("helvetica", "normal");
-                    doc.setFontSize(10);
-                    doc.text(`${index + 1}.`, marginLeft, yPos);
-                    
-                    // Item name
-                    const itemName = item.name.length > 25 ? item.name.substring(0, 25) + "..." : item.name;
-                    doc.text(itemName, marginLeft + 10, yPos);
-                    
-                    // 0800-2000 value
-                    const data0800 = vehicleData0800[index];
-                    let value0800 = "BROKEN";
-                    
-                    if (data0800) {
-                        if (item.type === "textfield") {
-                            if (item.name === "FUEL LEVEL") {
-                                value0800 = data0800.value ? `${data0800.value}%` : "BROKEN";
-                            } else if (item.name === "MILLAGE / ODOMETER") {
-                                value0800 = data0800.value ? data0800.value : "BROKEN";
-                            }
-                        } else {
-                            value0800 = data0800.checked ? "OK" : "BROKEN";
-                        }
-                    }
-                    doc.text(value0800, marginLeft + 95, yPos, { align: "center" });
-                    
-                    // 2000-0800 value
-                    const data2000 = vehicleData2000[index];
-                    let value2000 = "BROKEN";
-                    
-                    if (data2000) {
-                        if (item.type === "textfield") {
-                            if (item.name === "FUEL LEVEL") {
-                                value2000 = data2000.value ? `${data2000.value}%` : "BROKEN";
-                            } else if (item.name === "MILLAGE / ODOMETER") {
-                                value2000 = data2000.value ? data2000.value : "BROKEN";
-                            }
-                        } else {
-                            value2000 = data2000.checked ? "OK" : "BROKEN";
-                        }
-                    }
-                    doc.text(value2000, marginLeft + 120, yPos, { align: "center" });
-                    
-                    yPos += 5;
-                    
-                    // Page break handling
-                    if (yPos > 270 && index < vehicleInspectionItems.length - 1) {
-                        doc.addPage();
-                        yPos = 20;
-                        doc.setFontSize(11);
-                        doc.setFont("helvetica", "bold");
-                        doc.text("TIME", marginLeft, yPos);
-                        doc.text("INSPECTION CHECKLIST", marginLeft + 15, yPos);
-                        doc.text("0800-2000", marginLeft + 90, yPos);
-                        doc.text("2000-0800", marginLeft + 115, yPos);
-                        yPos += 8;
-                    }
-                });
-                
-                // ========== INSPECTION DETAILS TABLE ==========
-                yPos += 15;
-                
-                // Create inspection summary table - UPDATED (NO MEDIC)
-                const inspectionSummaryData = [];
-                
-                // Header row - REMOVED MEDIC COLUMNS
-                inspectionSummaryData.push([
-                    { content: "", styles: { fontStyle: 'bold', fillColor: [220, 220, 220] } },
-                    { content: "INSPECT BY", styles: { fontStyle: 'bold', fillColor: [220, 220, 220], halign: 'center' } },
-                    { content: "", styles: { fontStyle: 'bold', fillColor: [220, 220, 220] } },
-                    { content: "SWC/WC", styles: { fontStyle: 'bold', fillColor: [220, 220, 220], halign: 'center' } },
-                    { content: "", styles: { fontStyle: 'bold', fillColor: [220, 220, 220] } }
-                    // MEDIC columns removed
-                ]);
-                
-                // Sub-header row - REMOVED MEDIC COLUMNS
-                inspectionSummaryData.push([
-                    { content: "", styles: { fontStyle: 'bold' } },
-                    { content: "0800-2000", styles: { fontStyle: 'bold', halign: 'center' } },
-                    { content: "2000-0800", styles: { fontStyle: 'bold', halign: 'center' } },
-                    { content: "0800-2000", styles: { fontStyle: 'bold', halign: 'center' } },
-                    { content: "2000-0800", styles: { fontStyle: 'bold', halign: 'center' } }
-                    // MEDIC columns removed
-                ]);
-                
-                // NAME row - REMOVED MEDIC COLUMNS
-                inspectionSummaryData.push([
-                    { content: "NAME", styles: { fontStyle: 'bold' } },
-                    { content: inspectionDetails0800.completed ? inspectionDetails0800.inspectBy || "-" : "-", styles: { halign: 'center' } },
-                    { content: inspectionDetails2000.completed ? inspectionDetails2000.inspectBy || "-" : "-", styles: { halign: 'center' } },
-                    { content: inspectionDetails0800.completed ? inspectionDetails0800.swcwc || "-" : "-", styles: { halign: 'center' } },
-                    { content: inspectionDetails2000.completed ? inspectionDetails2000.swcwc || "-" : "-", styles: { halign: 'center' } }
-                    // MEDIC columns removed
-                ]);
-                
-                // SIGNATURE row - REMOVED MEDIC COLUMNS
-                inspectionSummaryData.push([
-                    { content: "SIGNATURE", styles: { fontStyle: 'bold' } },
-                    { content: "", styles: { minCellHeight: 15 } },
-                    { content: "", styles: { minCellHeight: 15 } },
-                    { content: "", styles: { minCellHeight: 15 } },
-                    { content: "", styles: { minCellHeight: 15 } }
-                    // MEDIC columns removed
-                ]);
-                
-                // Create table - UPDATED column styles
-                doc.autoTable({
-                    startY: yPos,
-                    head: [],
-                    body: inspectionSummaryData,
-                    theme: 'grid',
-                    tableWidth: pageWidth - marginLeft - marginRight,
-                    margin: { left: marginLeft },
-                    styles: { fontSize: 10, cellPadding: 3 },
-                    columnStyles: {
-                        0: { cellWidth: 25, fontStyle: 'bold' },
-                        1: { cellWidth: 35, halign: 'center' },
-                        2: { cellWidth: 35, halign: 'center' },
-                        3: { cellWidth: 35, halign: 'center' },
-                        4: { cellWidth: 35, halign: 'center' }
-                    }
-                });
-                
-                // ========== SAVE PDF ==========
-                const fileName = `MPRV_S3_Inspection_${vehicleNumber}_${monthYear.replace(' ', '_')}.pdf`;
-                doc.save(fileName);
-                
-                console.log('✅ PDF generated successfully (without medic)');
-            } catch (error) {
-                console.error('Error generating PDF:', error);
-                alert('Error generating PDF: ' + error.message);
+                yPos += 8;
             }
-        }
+        });
+        
+        // ========== INSPECTION DETAILS TABLE ==========
+        yPos += 15;
+        
+        // Create inspection summary table
+        const inspectionSummaryData = [];
+        
+        // Header row
+        inspectionSummaryData.push([
+            { content: "", styles: { fontStyle: 'bold', fillColor: [220, 220, 220] } },
+            { content: "INSPECT BY", styles: { fontStyle: 'bold', fillColor: [220, 220, 220], halign: 'center' } },
+            { content: "", styles: { fontStyle: 'bold', fillColor: [220, 220, 220] } },
+            { content: "SWC/WC", styles: { fontStyle: 'bold', fillColor: [220, 220, 220], halign: 'center' } },
+            { content: "", styles: { fontStyle: 'bold', fillColor: [220, 220, 220] } }
+        ]);
+        
+        // Sub-header row
+        inspectionSummaryData.push([
+            { content: "", styles: { fontStyle: 'bold' } },
+            { content: "0800-2000", styles: { fontStyle: 'bold', halign: 'center' } },
+            { content: "2000-0800", styles: { fontStyle: 'bold', halign: 'center' } },
+            { content: "0800-2000", styles: { fontStyle: 'bold', halign: 'center' } },
+            { content: "2000-0800", styles: { fontStyle: 'bold', halign: 'center' } }
+        ]);
+        
+        // NAME row
+        inspectionSummaryData.push([
+            { content: "NAME", styles: { fontStyle: 'bold' } },
+            { content: inspectionDetails0800.completed ? inspectionDetails0800.inspectBy || "-" : "-", styles: { halign: 'center' } },
+            { content: inspectionDetails2000.completed ? inspectionDetails2000.inspectBy || "-" : "-", styles: { halign: 'center' } },
+            { content: inspectionDetails0800.completed ? inspectionDetails0800.swcwc || "-" : "-", styles: { halign: 'center' } },
+            { content: inspectionDetails2000.completed ? inspectionDetails2000.swcwc || "-" : "-", styles: { halign: 'center' } }
+        ]);
+        
+        // SIGNATURE row - FIXED: Single line with empty cells (kotak kosong)
+        inspectionSummaryData.push([
+            { content: "SIGNATURE", styles: { fontStyle: 'bold' } },
+            { content: "", styles: { minCellHeight: 15 } },
+            { content: "", styles: { minCellHeight: 15 } },
+            { content: "", styles: { minCellHeight: 15 } },
+            { content: "", styles: { minCellHeight: 15 } }
+        ]);
+        
+        // Create table
+        doc.autoTable({
+            startY: yPos,
+            head: [],
+            body: inspectionSummaryData,
+            theme: 'grid',
+            tableWidth: pageWidth - marginLeft - marginRight,
+            margin: { left: marginLeft },
+            styles: { 
+                fontSize: 10, 
+                cellPadding: 3,
+                minCellHeight: 10  // Pastikan satu baris sahaja
+            },
+            columnStyles: {
+                0: { cellWidth: 30, fontStyle: 'bold' },  // Width cukup untuk "SIGNATURE"
+                1: { cellWidth: 35, halign: 'center' },
+                2: { cellWidth: 35, halign: 'center' },
+                3: { cellWidth: 35, halign: 'center' },
+                4: { cellWidth: 35, halign: 'center' }
+            }
+        });
+        
+        // ========== SAVE PDF ==========
+        const fileName = `MPRV_S3_Inspection_${vehicleNumber}_${monthYear.replace(' ', '_')}.pdf`;
+        doc.save(fileName);
+        
+        console.log('✅ PDF generated successfully (without medic)');
+    } catch (error) {
+        console.error('Error generating PDF:', error);
+        alert('Error generating PDF: ' + error.message);
+    }
+}
 
         function showLoading(show) {
             document.getElementById('loadingMessage').style.display = show ? 'block' : 'none';
