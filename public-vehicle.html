@@ -1156,17 +1156,9 @@
         function loadVehicleListFromFirebase() {
             let vehicles = [];
             
-            // FIX: Hanya filter untuk vehicle type sahaja, elakkan duplicate
             vehicles = allVehiclesData.filter(v => v.vehicleType === currentVehicleType);
             
-            // Debug untuk check duplicates
             console.log(`🔍 Vehicles for ${currentVehicleType}:`, vehicles.length);
-            console.log("📋 Vehicle details:", vehicles.map(v => ({
-                id: v.id,
-                number: v.vehicleNumber || v.ambulanceNumber,
-                type: v.vehicleType,
-                ambulanceType: v.ambulanceType
-            })));
             
             if (vehicles.length === 0) {
                 document.getElementById('loadingMessage').style.display = 'none';
@@ -1392,6 +1384,14 @@
                     const inspection0800 = dailyData.inspection0800;
                     const inspection2000 = dailyData.inspection2000;
                     
+                    // FIX: Pastikan equipment inspection data ada
+                    if (inspection0800) {
+                        inspection0800.equipmentInspectionData = inspection0800.equipmentInspectionData || [];
+                    }
+                    if (inspection2000) {
+                        inspection2000.equipmentInspectionData = inspection2000.equipmentInspectionData || [];
+                    }
+                    
                     if (!inspection0800 && !inspection2000) {
                         showNoInspectionData(`No inspection data for selected date`);
                         return;
@@ -1413,6 +1413,20 @@
                                  currentVehicleData.ambulanceType || 
                                  currentVehicleData.manufacturer || '';
             
+            // FIX: Dapatkan vehicle type yang spesifik
+            let specificVehicleType = '';
+            if (currentVehicleData) {
+                if (currentVehicleData.fireTruckType) {
+                    specificVehicleType = currentVehicleData.fireTruckType;
+                } else if (currentVehicleData.vehicleType) {
+                    const vehicleType = currentVehicleData.vehicleType.toUpperCase();
+                    if (vehicleType.includes('FT1')) specificVehicleType = 'FT1';
+                    else if (vehicleType.includes('FT2')) specificVehicleType = 'FT2';
+                    else if (vehicleType.includes('RSV')) specificVehicleType = 'RSV S1';
+                    else specificVehicleType = currentVehicleType;
+                }
+            }
+            
             const isFireTruck = currentVehicleType === 'Fire Truck' || 
                                (currentVehicleData && currentVehicleData.vehicleType === 'Fire Truck');
             
@@ -1429,7 +1443,7 @@
             const isAB4 = ambulanceType === 'AB4';
             const isAB1 = ambulanceType === 'AB1';
             
-            console.log(`🔍 DEBUG: Vehicle Type: ${currentVehicleType}, Ambulance Type: ${ambulanceType}`);
+            console.log(`🔍 DEBUG: Vehicle Type: ${currentVehicleType}, Specific Type: ${specificVehicleType}, Ambulance Type: ${ambulanceType}`);
             
             let html = '';
             
@@ -1439,7 +1453,7 @@
                         <h3><i class="fas fa-clipboard-list"></i> Inspection Report - ${formatDate(new Date(dateStr))}</h3>
                         <div class="vehicle-subtitle">
                             <span><i class="fas fa-car"></i> ${vehicleNumber || 'N/A'}</span>
-                            ${ambulanceType ? `<span><i class="fas fa-tag"></i> ${ambulanceType}</span>` : ''}
+                            <span><i class="fas fa-tag"></i> ${specificVehicleType || currentVehicleType}</span>
                         </div>
                     </div>
                 </div>
@@ -1521,7 +1535,7 @@
                                         <th width="60">No.</th>
                                         <th>Inspection Item</th>
                                         <th width="80">Quantity</th>
-                                        <th width="120">Status/Value</th>
+                                        <th width="120">Status</th>
                                         <th width="200">Remarks</th>
                                     </tr>
                                 </thead>
@@ -1587,7 +1601,7 @@
                                             <th width="60">No.</th>
                                             <th>Inspection Item</th>
                                             <th width="80">Quantity</th>
-                                            <th width="120">Status/Value</th>
+                                            <th width="120">Status</th>
                                             <th width="200">Remarks</th>
                                         </tr>
                                     </thead>
@@ -2249,324 +2263,539 @@
             }
         }
 
-        // ========== FUNGSI UNTUK AMBIL DATA SHIFT 2000 ==========
-        async function loadInspection2000Data(dateStr) {
-            try {
-                const dailyInspectionKey = `daily_${dateStr}`;
-                const docRef = await db.collection('vehicles').doc(currentVehicleId).get();
-                
-                if (docRef.exists) {
-                    const vehicleData = docRef.data();
-                    const dailyData = vehicleData[dailyInspectionKey];
-                    
-                    if (dailyData && dailyData.inspection2000) {
-                        return dailyData.inspection2000;
-                    }
-                }
-            } catch (error) {
-                console.error('Error loading 2000 shift data:', error);
+        // ========== FUNGSI UNTUK DAPATKAN RSV TYPE ==========
+        function getRSVTypeFromData(vehicleData) {
+            if (!vehicleData) return 'S1'; // default
+            
+            // Check dari fireTruckType (jika ada)
+            if (vehicleData.fireTruckType) {
+                const type = vehicleData.fireTruckType.toUpperCase();
+                if (type.includes('S1')) return 'S1';
+                if (type.includes('S4')) return 'S4';
+                if (type.includes('S5')) return 'S5';
+                return 'S1';
             }
             
-            // Return data kosong jika tidak ada
-            return {
-                inspectBy: '-',
-                swcwc: '-',
-                shift: '_________',
-                vehicleInspectionData: [],
-                medicalInspectionData: []
-            };
-        }
-
-        // ========== FUNGSI UNTUK AMBIL DATA SHIFT 0800 ==========
-        async function loadInspection0800Data(dateStr) {
-            try {
-                const dailyInspectionKey = `daily_${dateStr}`;
-                const docRef = await db.collection('vehicles').doc(currentVehicleId).get();
-                
-                if (docRef.exists) {
-                    const vehicleData = docRef.data();
-                    const dailyData = vehicleData[dailyInspectionKey];
-                    
-                    if (dailyData && dailyData.inspection0800) {
-                        return dailyData.inspection0800;
-                    }
-                }
-            } catch (error) {
-                console.error('Error loading 0800 shift data:', error);
+            // Check dari vehicleType
+            if (vehicleData.vehicleType) {
+                const type = vehicleData.vehicleType.toUpperCase();
+                if (type.includes('RSV S1') || type.includes('RSV_S1') || type.includes('RSV1')) return 'S1';
+                if (type.includes('RSV S4') || type.includes('RSV_S4') || type.includes('RSV4')) return 'S4';
+                if (type.includes('RSV S5') || type.includes('RSV_S5') || type.includes('RSV5')) return 'S5';
+                if (type.includes('RSV')) return 'S1'; // default jika hanya RSV
             }
             
-            // Return data kosong jika tidak ada
-            return {
-                inspectBy: '-',
-                swcwc: '-',
-                shift: 'A',
-                vehicleInspectionData: [],
-                medicalInspectionData: []
-            };
+            // Check dari ambulanceType
+            if (vehicleData.ambulanceType) {
+                const type = vehicleData.ambulanceType.toUpperCase();
+                if (type.includes('S1')) return 'S1';
+                if (type.includes('S4')) return 'S4';
+                if (type.includes('S5')) return 'S5';
+            }
+            
+            // Check dari manufacturer
+            if (vehicleData.manufacturer) {
+                const type = vehicleData.manufacturer.toUpperCase();
+                if (type.includes('S1')) return 'S1';
+                if (type.includes('S4')) return 'S4';
+                if (type.includes('S5')) return 'S5';
+            }
+            
+            return 'S1'; // default
         }
 
         async function generateShiftPDFContent(doc, dateStr, timeSlot, inspectionData, pageNum) {
-    const vehicleNumber = currentVehicleData.vehicleNumber || currentVehicleData.ambulanceNumber || '';
-    const ambulanceType = VEHICLE_AMBULANCE_TYPES[vehicleNumber] || 
-                         currentVehicleData.ambulanceType || 
-                         currentVehicleData.manufacturer || '';
-    const date = new Date(dateStr);
-    
-    const isFireTruck = currentVehicleType === 'Fire Truck' || 
-                       (currentVehicleData && currentVehicleData.vehicleType === 'Fire Truck');
-    
-    const isRSV = currentVehicleType === 'RSV' || 
-                 currentVehicleType === 'Rapid Support Vehicle' ||
-                 (currentVehicleData && currentVehicleData.vehicleType === 'Rapid Support Vehicle');
-    
-    const isAmbulance = currentVehicleType === 'Ambulance' || 
-                       (currentVehicleData && currentVehicleData.vehicleType === 'Ambulance') ||
-                       currentVehicleData.ambulanceType ||
-                       currentVehicleData.ambulanceNumber;
-    
-    const isMPRV = currentVehicleType === 'MPRV';
-    const isAB4 = ambulanceType === 'AB4';
-    const isAB1 = ambulanceType === 'AB1';
-    
-    const pageWidth = doc.internal.pageSize.width;
-    const marginLeft = 10;
-    const marginRight = 10;
-    
-    // HEADER SECTION
-    doc.setFontSize(14);
-    doc.setFont("helvetica", "bold");
-    doc.text("CENTRAL EMERGENCY & FIRE SERVICES", pageWidth/2, 15, { align: "center" });
-    
-    let yPos = 25;
-    
-    // ========== VEHICLE INFORMATION SECTION - SEMUA DALAM SATU BARIS ==========
-    doc.setFontSize(11);
-    
-    // 1. VEHICLE TYPE (LEFT)
-    doc.setFont("helvetica", "bold");
-    doc.text("VEHICLE TYPE:", marginLeft, yPos);
-    doc.setFont("helvetica", "normal");
-    
-    // Tentukan Vehicle Type berdasarkan data
-    let vehicleTypeDisplay = '';
-    if (isAmbulance) {
-        if (vehicleNumber.includes('AB1') || ambulanceType === 'AB1') {
-            vehicleTypeDisplay = 'AB1';
-        } else if (vehicleNumber.includes('AB4') || ambulanceType === 'AB4') {
-            vehicleTypeDisplay = 'AB4';
+            const vehicleNumber = currentVehicleData.vehicleNumber || currentVehicleData.ambulanceNumber || '';
+            const ambulanceType = VEHICLE_AMBULANCE_TYPES[vehicleNumber] || 
+                                 currentVehicleData.ambulanceType || 
+                                 currentVehicleData.manufacturer || '';
+            const date = new Date(dateStr);
+            
+            const isFireTruck = currentVehicleType === 'Fire Truck' || 
+                               (currentVehicleData && currentVehicleData.vehicleType === 'Fire Truck');
+            
+            const isRSV = currentVehicleType === 'RSV' || 
+                         currentVehicleType === 'Rapid Support Vehicle' ||
+                         (currentVehicleData && currentVehicleData.vehicleType === 'Rapid Support Vehicle');
+            
+            const isAmbulance = currentVehicleType === 'Ambulance' || 
+                               (currentVehicleData && currentVehicleData.vehicleType === 'Ambulance') ||
+                               currentVehicleData.ambulanceType ||
+                               currentVehicleData.ambulanceNumber;
+            
+            const isMPRV = currentVehicleType === 'MPRV';
+            const isAB4 = ambulanceType === 'AB4';
+            const isAB1 = ambulanceType === 'AB1';
+            
+            // Dapatkan RSV Type jika vehicle adalah RSV
+            const rsvType = isRSV ? getRSVTypeFromData(currentVehicleData) : '';
+            
+            const pageWidth = doc.internal.pageSize.width;
+            const marginLeft = 10;
+            const marginRight = 10;
+            
+            // HEADER SECTION
+            doc.setFontSize(14);
+            doc.setFont("helvetica", "bold");
+            doc.text("CENTRAL EMERGENCY & FIRE SERVICES", pageWidth/2, 15, { align: "center" });
+            
+            let yPos = 25;
+            
+            // ========== VEHICLE INFORMATION SECTION ==========
+doc.setFontSize(11);
+
+// 1. VEHICLE TYPE (LEFT) - FIXED khusus untuk RSV
+doc.setFont("helvetica", "bold");
+doc.text("VEHICLE TYPE:", marginLeft, yPos);
+doc.setFont("helvetica", "normal");
+
+// Tentukan Vehicle Type berdasarkan data - PERBAIKAN KHUSUS UNTUK RSV
+let vehicleTypeDisplay = '';
+
+// LOGIC PERBAIKAN: Jika vehicle adalah RSV, gunakan format "RSV S1"
+if (isRSV) {
+    // Dapatkan RSV Type (S1, S4, atau S5)
+    const rsvType = getRSVTypeFromData(currentVehicleData);
+    vehicleTypeDisplay = `RSV ${rsvType}`;
+} 
+// Untuk vehicle lain, gunakan logic asal (JANGAN DIUBAH)
+else if (currentVehicleData) {
+    if (currentVehicleData.fireTruckType) {
+        vehicleTypeDisplay = currentVehicleData.fireTruckType.toUpperCase();
+    } else if (currentVehicleData.vehicleType) {
+        const vehicleType = currentVehicleData.vehicleType.toUpperCase();
+        
+        if (vehicleType.includes('FT1')) {
+            vehicleTypeDisplay = 'FT1';
+        } else if (vehicleType.includes('FT2')) {
+            vehicleTypeDisplay = 'FT2';
+        } else if (vehicleType.includes('AMBULANCE')) {
+            if (vehicleNumber.includes('AB1') || ambulanceType === 'AB1') {
+                vehicleTypeDisplay = 'AB1';
+            } else if (vehicleNumber.includes('AB4') || ambulanceType === 'AB4') {
+                vehicleTypeDisplay = 'AB4';
+            } else {
+                vehicleTypeDisplay = 'AMBULANCE';
+            }
         } else {
-            vehicleTypeDisplay = 'AMBULANCE';
+            // Untuk vehicle lain, gunakan asal
+            vehicleTypeDisplay = vehicleType;
         }
-    } else if (isFireTruck) {
-        vehicleTypeDisplay = 'FIRE TRUCK';
-    } else if (isRSV) {
-        vehicleTypeDisplay = 'RSV S1'; // RSV S1 seperti contoh anda
-    } else if (isMPRV) {
-        vehicleTypeDisplay = 'MPRV';
     } else {
-        vehicleTypeDisplay = currentVehicleType || 'N/A';
+        vehicleTypeDisplay = isAmbulance ? 'AMBULANCE' : 
+                           isFireTruck ? 'FIRE TRUCK' : 
+                           isMPRV ? 'MPRV' : 
+                           currentVehicleType || 'N/A';
     }
-    
-    doc.text(vehicleTypeDisplay, marginLeft + 35, yPos);
-    
-    // 2. DATE (CENTER)
-    const day = date.getDate();
-    const monthYear = date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }).toUpperCase();
-    const fullDate = `${day} ${monthYear}`;
-    
-    doc.setFont("helvetica", "bold");
-    doc.text("DATE:", pageWidth/2 - 15, yPos);
-    doc.setFont("helvetica", "normal");
-    doc.text(fullDate, pageWidth/2 + 10, yPos);
-    
-    // 3. VEHICLE NUMBER (RIGHT)
-    doc.setFont("helvetica", "bold");
-    const vehicleNumberText = "VEHICLE NUMBER:";
-    const vehicleNumberTextWidth = doc.getTextWidth(vehicleNumberText);
-    
-    // Pastikan tidak bertindih dengan tarikh
-    const vehicleNumberStartX = pageWidth - marginRight - 60;
-    if (vehicleNumberStartX > (pageWidth/2 + 50)) { // Cukup ruang
-        doc.text(vehicleNumberText, vehicleNumberStartX, yPos);
-        doc.setFont("helvetica", "normal");
-        
-        // Format vehicle number - ambil nombor sahaja jika ada format "CCF 6941"
-        let displayVehicleNumber = vehicleNumber || 'N/A';
-        const justNumbers = displayVehicleNumber.replace(/\D/g, '');
-        if (justNumbers && justNumbers.length > 0 && justNumbers.length <= 4) {
-            displayVehicleNumber = justNumbers;
-        }
-        
-        doc.text(displayVehicleNumber, pageWidth - marginRight, yPos, { align: "right" });
-    } else {
-        // Jika ruang tak cukup, letak di baris seterusnya
-        yPos += 7;
-        doc.setFont("helvetica", "bold");
-        doc.text("VEHICLE NUMBER:", marginLeft, yPos);
-        doc.setFont("helvetica", "normal");
-        doc.text(vehicleNumber, marginLeft + 45, yPos);
-    }
-    
-    yPos += 10; // Ruang sebelum section seterusnya
-    
-    // ========== SHIFT INFORMATION SECTION ==========
-    // Baris 2: TIME (0800-2000), NAME (Adha), SHIFT (A)
-    doc.setFont("helvetica", "bold");
-    doc.text("TIME:", marginLeft, yPos);
-    doc.setFont("helvetica", "normal");
-    doc.text("0800 - 2000", marginLeft + 18, yPos);
-    
-    doc.setFont("helvetica", "bold");
-    doc.text("NAME:", marginLeft + 55, yPos);
-    doc.setFont("helvetica", "normal");
-    
-    // Load data untuk shift 0800
-    let inspection0800Data = inspectionData;
-    if (timeSlot === '2000') {
-        try {
-            inspection0800Data = await loadInspection0800Data(dateStr);
-        } catch (error) {
-            console.log('Using current data for 0800 shift');
-        }
-    }
-    
-    const name0800 = inspection0800Data.inspectBy || "Adha";
-    doc.text(name0800, marginLeft + 75, yPos);
-    
-    doc.setFont("helvetica", "bold");
-    doc.text("SHIFT:", marginLeft + 105, yPos);
-    doc.setFont("helvetica", "normal");
-    doc.text(inspection0800Data.shift || "A", marginLeft + 125, yPos);
-    
-    yPos += 7;
-    
-    // Baris 3: TIME (2000-0800), NAME (blank), SHIFT (blank)
-    doc.setFont("helvetica", "bold");
-    doc.text("TIME:", marginLeft, yPos);
-    doc.setFont("helvetica", "normal");
-    doc.text("2000 - 0800", marginLeft + 18, yPos);
-    
-    doc.setFont("helvetica", "bold");
-    doc.text("NAME:", marginLeft + 55, yPos);
-    doc.setFont("helvetica", "normal");
-    
-    // Load data untuk shift 2000
-    let inspection2000Data = inspectionData;
-    if (timeSlot === '0800') {
-        try {
-            inspection2000Data = await loadInspection2000Data(dateStr);
-        } catch (error) {
-            console.log('Using current data for 2000 shift');
-        }
-    }
-    
-    const name2000 = inspection2000Data.inspectBy || "_________";
-    doc.text(name2000, marginLeft + 75, yPos);
-    
-    doc.setFont("helvetica", "bold");
-    doc.text("SHIFT:", marginLeft + 105, yPos);
-    doc.setFont("helvetica", "normal");
-    doc.text(inspection2000Data.shift || "_________", marginLeft + 125, yPos);
-    
-    yPos += 15;
-    
-    // ========== VEHICLE INSPECTION TABLE ==========
-    // Table Header dengan REMARKS
-    doc.setFontSize(11);
-    doc.setFont("helvetica", "bold");
-    
-    // Column headers - Simplified to match screenshot
-    doc.text("NO.", marginLeft, yPos);
-    doc.text("INSPECTION ITEM", marginLeft + 15, yPos);
-    doc.text("0800-2000", marginLeft + 85, yPos, { align: "center" });
-    doc.text("2000-0800", marginLeft + 110, yPos, { align: "center" });
-    doc.text("REMARKS", marginLeft + 135, yPos);
-    
-    // Draw header line
-    yPos += 3;
-    doc.setLineWidth(0.5);
-    doc.line(marginLeft, yPos, pageWidth - marginRight, yPos);
-    
-    yPos += 5;
-    
-    // Get inspection data untuk kedua-dua shift
-    const vehicleData0800 = inspection0800Data.vehicleInspectionData || [];
-    const vehicleData2000 = inspection2000Data.vehicleInspectionData || [];
-    
-    // Vehicle Inspection Items
-    const vehicleItems = isFireTruck ? FIRE_TRUCK_VEHICLE_INSPECTION_ITEMS : 
-                    (isAmbulance || isMPRV || isRSV) ? VEHICLE_INSPECTION_ITEMS : [];
-    
-    // ... (seterusnya sama seperti kod asal untuk table content dan sections lain)
-    // Kekalkan code untuk table content dan sections lain seperti asal
-    
-    vehicleItems.forEach((item, index) => {
-        // Number
-        doc.setFont("helvetica", "normal");
-        doc.setFontSize(10);
-        doc.text(`${index + 1}`, marginLeft, yPos);
-        
-        // Item name
-        const itemName = item.name.length > 30 ? item.name.substring(0, 30) + "..." : item.name;
-        doc.text(itemName, marginLeft + 10, yPos);
-        
-        // 0800-2000 value
-        const data0800 = vehicleData0800[index] || {};
-        let value0800 = "BROKEN";
-        
-        if (data0800) {
-            if (item.name.includes("LEVEL") || item.name.includes("MILEAGE") || item.name.includes("ODOMETER")) {
-                if (item.name === "FUEL LEVEL") {
-                    value0800 = data0800.value ? `${data0800.value}%` : "BROKEN";
-                } else {
-                    value0800 = data0800.value ? data0800.value : "BROKEN";
+} else {
+    vehicleTypeDisplay = isAmbulance ? 'AMBULANCE' : 
+                       isFireTruck ? 'FIRE TRUCK' : 
+                       isMPRV ? 'MPRV' : 
+                       currentVehicleType || 'N/A';
+}
+
+// Perbaiki jika ada typo "VEHICLATE" (untuk semua vehicle types)
+vehicleTypeDisplay = vehicleTypeDisplay.replace('VEHICLATE', 'VEHICLE');
+
+// Display vehicle type
+doc.text(vehicleTypeDisplay, marginLeft + 35, yPos);
+            
+            // 2. DATE (CENTER)
+            const day = date.getDate();
+            const monthYear = date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }).toUpperCase();
+            const fullDate = `${day} ${monthYear}`;
+            
+            doc.setFont("helvetica", "bold");
+            doc.text("DATE:", pageWidth/2 - 15, yPos);
+            doc.setFont("helvetica", "normal");
+            doc.text(fullDate, pageWidth/2 + 10, yPos);
+            
+            // 3. VEHICLE NUMBER (RIGHT)
+            doc.setFont("helvetica", "bold");
+            const vehicleNumberText = "VEHICLE NUMBER:";
+            const vehicleNumberTextWidth = doc.getTextWidth(vehicleNumberText);
+            
+            const vehicleNumberStartX = pageWidth - marginRight - 60;
+            if (vehicleNumberStartX > (pageWidth/2 + 50)) {
+                doc.text(vehicleNumberText, vehicleNumberStartX, yPos);
+                doc.setFont("helvetica", "normal");
+                
+                let displayVehicleNumber = vehicleNumber || 'N/A';
+                const justNumbers = displayVehicleNumber.replace(/\D/g, '');
+                if (justNumbers && justNumbers.length > 0 && justNumbers.length <= 4) {
+                    displayVehicleNumber = justNumbers;
                 }
+                
+                doc.text(displayVehicleNumber, pageWidth - marginRight, yPos, { align: "right" });
             } else {
-                value0800 = data0800.checked ? "OK" : "BROKEN";
+                yPos += 7;
+                doc.setFont("helvetica", "bold");
+                doc.text("VEHICLE NUMBER:", marginLeft, yPos);
+                doc.setFont("helvetica", "normal");
+                doc.text(vehicleNumber, marginLeft + 45, yPos);
             }
-        }
-        doc.text(value0800, marginLeft + 90, yPos, { align: "center" });
-        
-        // 2000-0800 value
-        const data2000 = vehicleData2000[index] || {};
-        let value2000 = "BROKEN";
-        
-        if (data2000) {
-            if (item.name.includes("LEVEL") || item.name.includes("MILEAGE") || item.name.includes("ODOMETER")) {
-                if (item.name === "FUEL LEVEL") {
-                    value2000 = data2000.value ? `${data2000.value}%` : "BROKEN";
-                } else {
-                    value2000 = data2000.value ? data2000.value : "BROKEN";
+            
+            yPos += 10;
+            
+            // ========== SHIFT INFORMATION SECTION ==========
+            // Baris 2: TIME (0800-2000), NAME (Adha), SHIFT (A)
+            doc.setFont("helvetica", "bold");
+            doc.text("TIME:", marginLeft, yPos);
+            doc.setFont("helvetica", "normal");
+            doc.text("0800 - 2000", marginLeft + 18, yPos);
+            
+            doc.setFont("helvetica", "bold");
+            doc.text("NAME:", marginLeft + 55, yPos);
+            doc.setFont("helvetica", "normal");
+            
+            // Load data untuk shift 0800
+            let inspection0800Data = inspectionData;
+            if (timeSlot === '2000') {
+                try {
+                    inspection0800Data = await loadInspection0800Data(dateStr);
+                } catch (error) {
+                    console.log('Using current data for 0800 shift');
                 }
-            } else {
-                value2000 = data2000.checked ? "OK" : "BROKEN";
             }
-        }
-        doc.text(value2000, marginLeft + 115, yPos, { align: "center" });
-        
-        // REMARKS - gunakan remarks dari data shift yang sedang di-generate
-        const remarksData = timeSlot === '0800' ? data0800 : data2000;
-        const remarks = remarksData?.remarks || '';
-        const maxRemarksLength = 15;
-        const displayRemarks = remarks.length > maxRemarksLength ? remarks.substring(0, maxRemarksLength) + "..." : remarks;
-        doc.text(displayRemarks, marginLeft + 135, yPos);
-        
-        yPos += 5;
-        
-        // Page break handling
-        if (yPos > 270 && index < vehicleItems.length - 1) {
-            doc.addPage();
-            yPos = 20;
+            
+            const name0800 = inspection0800Data.inspectBy || "Adha";
+            doc.text(name0800, marginLeft + 75, yPos);
+            
+            doc.setFont("helvetica", "bold");
+            doc.text("SHIFT:", marginLeft + 105, yPos);
+            doc.setFont("helvetica", "normal");
+            doc.text(inspection0800Data.shift || "A", marginLeft + 125, yPos);
+            
+            yPos += 7;
+            
+            // Baris 3: TIME (2000-0800), NAME (blank), SHIFT (blank)
+            doc.setFont("helvetica", "bold");
+            doc.text("TIME:", marginLeft, yPos);
+            doc.setFont("helvetica", "normal");
+            doc.text("2000 - 0800", marginLeft + 18, yPos);
+            
+            doc.setFont("helvetica", "bold");
+            doc.text("NAME:", marginLeft + 55, yPos);
+            doc.setFont("helvetica", "normal");
+            
+            // Load data untuk shift 2000
+            let inspection2000Data = inspectionData;
+            if (timeSlot === '0800') {
+                try {
+                    inspection2000Data = await loadInspection2000Data(dateStr);
+                } catch (error) {
+                    console.log('Using current data for 2000 shift');
+                }
+            }
+            
+            const name2000 = inspection2000Data.inspectBy || "_________";
+            doc.text(name2000, marginLeft + 75, yPos);
+            
+            doc.setFont("helvetica", "bold");
+            doc.text("SHIFT:", marginLeft + 105, yPos);
+            doc.setFont("helvetica", "normal");
+            doc.text(inspection2000Data.shift || "_________", marginLeft + 125, yPos);
+            
+            yPos += 15;
+            
+            // ========== VEHICLE INSPECTION TABLE ==========
             doc.setFontSize(11);
             doc.setFont("helvetica", "bold");
+            
+            // Column headers
             doc.text("NO.", marginLeft, yPos);
             doc.text("INSPECTION ITEM", marginLeft + 15, yPos);
             doc.text("0800-2000", marginLeft + 85, yPos, { align: "center" });
             doc.text("2000-0800", marginLeft + 110, yPos, { align: "center" });
             doc.text("REMARKS", marginLeft + 135, yPos);
-            yPos += 8;
-        }
-    });
+            
+            // Draw header line
+            yPos += 3;
+            doc.setLineWidth(0.5);
+            doc.line(marginLeft, yPos, pageWidth - marginRight, yPos);
+            
+            yPos += 5;
+            
+            // Get inspection data untuk kedua-dua shift
+            const vehicleData0800 = inspection0800Data.vehicleInspectionData || [];
+            const vehicleData2000 = inspection2000Data.vehicleInspectionData || [];
+            
+            // Vehicle Inspection Items
+            const vehicleItems = isFireTruck ? FIRE_TRUCK_VEHICLE_INSPECTION_ITEMS : 
+                            (isAmbulance || isMPRV || isRSV) ? VEHICLE_INSPECTION_ITEMS : [];
+            
+            vehicleItems.forEach((item, index) => {
+                // Number
+                doc.setFont("helvetica", "normal");
+                doc.setFontSize(10);
+                doc.text(`${index + 1}`, marginLeft, yPos);
+                
+                // Item name
+                const itemName = item.name.length > 25 ? item.name.substring(0, 25) + "..." : item.name;
+                doc.text(itemName, marginLeft + 10, yPos);
+                
+                // 0800-2000 value
+                const data0800 = vehicleData0800[index] || {};
+                let value0800 = "BROKEN";
+                
+                if (data0800) {
+                    if (item.name.includes("LEVEL") || item.name.includes("MILEAGE") || item.name.includes("ODOMETER")) {
+                        if (item.name === "FUEL LEVEL") {
+                            value0800 = data0800.value ? `${data0800.value}%` : "BROKEN";
+                        } else {
+                            value0800 = data0800.value ? data0800.value : "BROKEN";
+                        }
+                    } else {
+                        value0800 = data0800.checked ? "OK" : "BROKEN";
+                    }
+                }
+                doc.text(value0800, marginLeft + 90, yPos, { align: "center" });
+                
+                // 2000-0800 value
+                const data2000 = vehicleData2000[index] || {};
+                let value2000 = "BROKEN";
+                
+                if (data2000) {
+                    if (item.name.includes("LEVEL") || item.name.includes("MILEAGE") || item.name.includes("ODOMETER")) {
+                        if (item.name === "FUEL LEVEL") {
+                            value2000 = data2000.value ? `${data2000.value}%` : "BROKEN";
+                        } else {
+                            value2000 = data2000.value ? data2000.value : "BROKEN";
+                        }
+                    } else {
+                        value2000 = data2000.checked ? "OK" : "BROKEN";
+                    }
+                }
+                doc.text(value2000, marginLeft + 115, yPos, { align: "center" });
+                
+                // REMARKS
+                const remarksData = timeSlot === '0800' ? data0800 : data2000;
+                const remarks = remarksData?.remarks || '';
+                const maxRemarksLength = 15;
+                const displayRemarks = remarks.length > maxRemarksLength ? remarks.substring(0, maxRemarksLength) + "..." : remarks;
+                doc.text(displayRemarks, marginLeft + 135, yPos);
+                
+                yPos += 5;
+                
+                // Page break handling
+                if (yPos > 270 && index < vehicleItems.length - 1) {
+                    doc.addPage();
+                    yPos = 20;
+                    doc.setFontSize(11);
+                    doc.setFont("helvetica", "bold");
+                    doc.text("NO.", marginLeft, yPos);
+                    doc.text("INSPECTION ITEM", marginLeft + 15, yPos);
+                    doc.text("0800-2000", marginLeft + 85, yPos, { align: "center" });
+                    doc.text("2000-0800", marginLeft + 110, yPos, { align: "center" });
+                    doc.text("REMARKS", marginLeft + 135, yPos);
+                    yPos += 8;
+                }
+            });
+
+            // ========== EQUIPMENT INSPECTION (FIRE TRUCK) ==========
+            if (isFireTruck) {
+                const equipmentData0800 = inspection0800Data.equipmentInspectionData || [];
+                const equipmentData2000 = inspection2000Data.equipmentInspectionData || [];
+                const equipmentItems = FIRE_TRUCK_EQUIPMENT_INSPECTION_ITEMS;
+                
+                if (equipmentItems.length > 0) {
+                    // Page break handling
+                    if (yPos > 250) {
+                        doc.addPage();
+                        yPos = 20;
+                    }
+                    
+                    yPos += 10;
+                    doc.setFontSize(11);
+                    doc.setFont("helvetica", "bold");
+                    doc.text("EQUIPMENT INSPECTION (FIRE TRUCK)", marginLeft, yPos);
+                    
+                    yPos += 3;
+                    doc.line(marginLeft, yPos, pageWidth - marginRight, yPos);
+                    yPos += 5;
+                    
+                    // Table header
+                    doc.setFont("helvetica", "bold");
+                    doc.text("NO.", marginLeft, yPos);
+                    doc.text("EQUIPMENT ITEM", marginLeft + 15, yPos);
+                    doc.text("QTY", marginLeft + 85, yPos, { align: "center" });
+                    doc.text("0800-2000", marginLeft + 100, yPos, { align: "center" });
+                    doc.text("2000-0800", marginLeft + 125, yPos, { align: "center" });
+                    doc.text("REMARKS", marginLeft + 150, yPos);
+                    
+                    yPos += 3;
+                    doc.line(marginLeft, yPos, pageWidth - marginRight, yPos);
+                    yPos += 5;
+                    
+                    // Table content
+                    equipmentItems.forEach((item, index) => {
+                        if (yPos > 270 && index < equipmentItems.length - 1) {
+                            doc.addPage();
+                            yPos = 20;
+                            // Redraw header
+                            doc.setFont("helvetica", "bold");
+                            doc.text("NO.", marginLeft, yPos);
+                            doc.text("EQUIPMENT ITEM", marginLeft + 15, yPos);
+                            doc.text("QTY", marginLeft + 85, yPos, { align: "center" });
+                            doc.text("0800-2000", marginLeft + 100, yPos, { align: "center" });
+                            doc.text("2000-0800", marginLeft + 125, yPos, { align: "center" });
+                            doc.text("REMARKS", marginLeft + 150, yPos);
+                            yPos += 8;
+                        }
+                        
+                        doc.setFont("helvetica", "normal");
+                        doc.setFontSize(10);
+                        doc.text(`${index + 1}`, marginLeft, yPos);
+                        
+                        const itemName = item.name.length > 25 ? item.name.substring(0, 25) + "..." : item.name;
+                        doc.text(itemName, marginLeft + 10, yPos);
+                        
+                        doc.text(item.qty, marginLeft + 90, yPos, { align: "center" });
+                        
+                        // 0800-2000 status
+                        const data0800 = equipmentData0800[index] || {};
+                        const status0800 = data0800.checked ? "OK" : "BROKEN";
+                        doc.text(status0800, marginLeft + 105, yPos, { align: "center" });
+                        
+                        // 2000-0800 status
+                        const data2000 = equipmentData2000[index] || {};
+                        const status2000 = data2000.checked ? "OK" : "BROKEN";
+                        doc.text(status2000, marginLeft + 130, yPos, { align: "center" });
+                        
+                        // REMARKS
+                        const remarksData = timeSlot === '0800' ? data0800 : data2000;
+                        const remarks = remarksData?.remarks || "";
+                        const maxRemarksLength = 15;
+                        const displayRemarks = remarks.length > maxRemarksLength ? 
+                            remarks.substring(0, maxRemarksLength) + "..." : remarks;
+                        doc.text(displayRemarks, marginLeft + 150, yPos);
+                        
+                        yPos += 5;
+                    });
+                    
+                    yPos += 10;
+                }
+            }
+
+            // ========== TAMBAH INI: EQUIPMENT INSPECTION (RSV) ==========
+            if (isRSV) {
+                const equipmentData0800 = inspection0800Data.equipmentInspectionData || {};
+                const equipmentData2000 = inspection2000Data.equipmentInspectionData || {};
+                
+                // Page break handling
+                if (yPos > 250) {
+                    doc.addPage();
+                    yPos = 20;
+                }
+                
+                yPos += 10;
+                doc.setFontSize(11);
+                doc.setFont("helvetica", "bold");
+                doc.text("EQUIPMENT INSPECTION (RSV)", marginLeft, yPos);
+                
+                yPos += 3;
+                doc.line(marginLeft, yPos, pageWidth - marginRight, yPos);
+                yPos += 5;
+                
+                // Equipment Categories for RSV
+                let categoryCounter = 1;
+                Object.keys(RSV_CATEGORY_EQUIPMENT).forEach(category => {
+                    if (yPos > 270) {
+                        doc.addPage();
+                        yPos = 20;
+                    }
+                    
+                    // Category header
+                    doc.setFont("helvetica", "bold");
+                    doc.setFontSize(10);
+                    doc.text(`${categoryCounter}. ${category}`, marginLeft, yPos);
+                    yPos += 5;
+                    
+                    // Table header for category
+                    doc.setFont("helvetica", "bold");
+                    doc.setFontSize(9);
+                    doc.text("NO.", marginLeft, yPos);
+                    doc.text("ITEM", marginLeft + 10, yPos);
+                    doc.text("QTY", marginLeft + 80, yPos, { align: "center" });
+                    doc.text("0800-2000", marginLeft + 95, yPos, { align: "center" });
+                    doc.text("2000-0800", marginLeft + 120, yPos, { align: "center" });
+                    doc.text("REMARKS", marginLeft + 145, yPos);
+                    
+                    yPos += 3;
+                    doc.line(marginLeft, yPos, pageWidth - marginRight, yPos);
+                    yPos += 5;
+                    
+                    // Get category data
+                    const categoryItems = RSV_CATEGORY_EQUIPMENT[category];
+                    const categoryData0800 = equipmentData0800[category] || {};
+                    const categoryData2000 = equipmentData2000[category] || {};
+                    const itemsData0800 = categoryData0800.items || [];
+                    const itemsData2000 = categoryData2000.items || [];
+                    
+                    // Table content for category
+                    categoryItems.forEach((item, index) => {
+                        if (yPos > 270) {
+                            doc.addPage();
+                            yPos = 20;
+                            // Redraw header
+                            doc.setFont("helvetica", "bold");
+                            doc.setFontSize(9);
+                            doc.text("NO.", marginLeft, yPos);
+                            doc.text("ITEM", marginLeft + 10, yPos);
+                            doc.text("QTY", marginLeft + 80, yPos, { align: "center" });
+                            doc.text("0800-2000", marginLeft + 95, yPos, { align: "center" });
+                            doc.text("2000-0800", marginLeft + 120, yPos, { align: "center" });
+                            doc.text("REMARKS", marginLeft + 145, yPos);
+                            yPos += 8;
+                        }
+                        
+                        doc.setFont("helvetica", "normal");
+                        doc.setFontSize(9);
+                        doc.text(`${index + 1}`, marginLeft, yPos);
+                        
+                        // Item name (truncate if too long)
+                        const itemName = item.name.length > 30 ? item.name.substring(0, 30) + "..." : item.name;
+                        doc.text(itemName, marginLeft + 10, yPos);
+                        
+                        doc.text(item.qty, marginLeft + 85, yPos, { align: "center" });
+                        
+                        // 0800-2000 status
+                        let storedItem0800 = null;
+                        if (itemsData0800 && itemsData0800.length > 0) {
+                            storedItem0800 = itemsData0800.find(i => 
+                                i && i.id && i.id === item.id
+                            );
+                        }
+                        const status0800 = storedItem0800 ? (storedItem0800.inspected ? "OK" : "BROKEN") : "BROKEN";
+                        doc.text(status0800, marginLeft + 100, yPos, { align: "center" });
+                        
+                        // 2000-0800 status
+                        let storedItem2000 = null;
+                        if (itemsData2000 && itemsData2000.length > 0) {
+                            storedItem2000 = itemsData2000.find(i => 
+                                i && i.id && i.id === item.id
+                            );
+                        }
+                        const status2000 = storedItem2000 ? (storedItem2000.inspected ? "OK" : "BROKEN") : "BROKEN";
+                        doc.text(status2000, marginLeft + 125, yPos, { align: "center" });
+                        
+                        // REMARKS
+                        const remarksData = timeSlot === '0800' ? storedItem0800 : storedItem2000;
+                        const remarks = remarksData?.remarks || "";
+                        const maxRemarksLength = 12;
+                        const displayRemarks = remarks.length > maxRemarksLength ? 
+                            remarks.substring(0, maxRemarksLength) + "..." : remarks;
+                        doc.text(displayRemarks, marginLeft + 145, yPos);
+                        
+                        yPos += 5;
+                    });
+                    
+                    yPos += 5; // Space between categories
+                    categoryCounter++;
+                });
+                
+                yPos += 5;
+            }
 
             // ========== MEDICAL INSPECTION SECTION (UNTUK AMBULANCE) ==========
             if (isAmbulance) {
@@ -2705,18 +2934,18 @@
                 { content: inspection2000Data.medic || "-", styles: { halign: 'center' } }
             ]);
             
-            // SIGNATURE row - Single line with empty cells (kotak kosong)
+            // SIGNATURE row - FIXED: Cell height yang sesuai
             signatureData.push([
                 { content: "SIGNATURE", styles: { fontStyle: 'bold' } },
-                { content: "", styles: { minCellHeight: 15 } },
-                { content: "", styles: { minCellHeight: 15 } },
-                { content: "", styles: { minCellHeight: 15 } },
-                { content: "", styles: { minCellHeight: 15 } },
-                { content: "", styles: { minCellHeight: 15 } },
-                { content: "", styles: { minCellHeight: 15 } }
+                { content: "", styles: { minCellHeight: 20, valign: 'middle' } },
+                { content: "", styles: { minCellHeight: 20, valign: 'middle' } },
+                { content: "", styles: { minCellHeight: 20, valign: 'middle' } },
+                { content: "", styles: { minCellHeight: 20, valign: 'middle' } },
+                { content: "", styles: { minCellHeight: 20, valign: 'middle' } },
+                { content: "", styles: { minCellHeight: 20, valign: 'middle' } }
             ]);
             
-            // Create table
+            // Create table dengan settings yang betul
             doc.autoTable({
                 startY: yPos,
                 head: [],
@@ -2725,20 +2954,20 @@
                 tableWidth: pageWidth - marginLeft - marginRight,
                 margin: { left: marginLeft },
                 styles: { 
-                    fontSize: 10, 
-                    cellPadding: 3,
-                    minCellHeight: 10,
+                    fontSize: 9, // Kurangkan font size
+                    cellPadding: 2, // Kurangkan padding
+                    lineWidth: 0.1, // Line lebih halus
                     lineColor: [0, 0, 0],
-                    lineWidth: 0.5
+                    minCellHeight: 10
                 },
                 columnStyles: {
-                    0: { cellWidth: 25, fontStyle: 'bold', halign: 'left' },
-                    1: { cellWidth: 25, halign: 'center' },
-                    2: { cellWidth: 25, halign: 'center' },
-                    3: { cellWidth: 25, halign: 'center' },
-                    4: { cellWidth: 25, halign: 'center' },
-                    5: { cellWidth: 25, halign: 'center' },
-                    6: { cellWidth: 25, halign: 'center' }
+                    0: { cellWidth: 22, fontStyle: 'bold', halign: 'left' },
+                    1: { cellWidth: 20, halign: 'center', valign: 'middle' },
+                    2: { cellWidth: 20, halign: 'center', valign: 'middle' },
+                    3: { cellWidth: 20, halign: 'center', valign: 'middle' },
+                    4: { cellWidth: 20, halign: 'center', valign: 'middle' },
+                    5: { cellWidth: 20, halign: 'center', valign: 'middle' },
+                    6: { cellWidth: 20, halign: 'center', valign: 'middle' }
                 },
                 didDrawPage: function(data) {
                     doc.setDrawColor(0, 0, 0);
@@ -2747,6 +2976,64 @@
             });
             
             return yPos;
+        }
+
+        // ========== FUNGSI UNTUK AMBIL DATA SHIFT 2000 ==========
+        async function loadInspection2000Data(dateStr) {
+            try {
+                const dailyInspectionKey = `daily_${dateStr}`;
+                const docRef = await db.collection('vehicles').doc(currentVehicleId).get();
+                
+                if (docRef.exists) {
+                    const vehicleData = docRef.data();
+                    const dailyData = vehicleData[dailyInspectionKey];
+                    
+                    if (dailyData && dailyData.inspection2000) {
+                        return dailyData.inspection2000;
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading 2000 shift data:', error);
+            }
+            
+            // Return data kosong jika tidak ada
+            return {
+                inspectBy: '-',
+                swcwc: '-',
+                shift: '_________',
+                vehicleInspectionData: [],
+                medicalInspectionData: [],
+                equipmentInspectionData: []
+            };
+        }
+
+        // ========== FUNGSI UNTUK AMBIL DATA SHIFT 0800 ==========
+        async function loadInspection0800Data(dateStr) {
+            try {
+                const dailyInspectionKey = `daily_${dateStr}`;
+                const docRef = await db.collection('vehicles').doc(currentVehicleId).get();
+                
+                if (docRef.exists) {
+                    const vehicleData = docRef.data();
+                    const dailyData = vehicleData[dailyInspectionKey];
+                    
+                    if (dailyData && dailyData.inspection0800) {
+                        return dailyData.inspection0800;
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading 0800 shift data:', error);
+            }
+            
+            // Return data kosong jika tidak ada
+            return {
+                inspectBy: '-',
+                swcwc: '-',
+                shift: 'A',
+                vehicleInspectionData: [],
+                medicalInspectionData: [],
+                equipmentInspectionData: []
+            };
         }
 
         function getStatusClass(status) {
