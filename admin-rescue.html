@@ -3,8 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rescue Equipment</title>
+    <title>Rescue Equipment - Admin Panel</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- QR Code Library -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+    <!-- jsPDF Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
     <style>
         :root {
             --primary-color: #c9302c;
@@ -35,6 +40,7 @@
             color: var(--dark-text);
             line-height: 1.6;
             transition: all 0.3s ease;
+            min-height: 100vh;
         }
         
         .container {
@@ -194,19 +200,22 @@
         /* STATION CARDS STYLES */
         .station-cards {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 20px;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 25px;
             margin-top: 20px;
         }
 
         .station-card {
             background: white;
-            border-radius: 10px;
+            border-radius: 12px;
             padding: 25px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-            cursor: pointer;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            cursor: default;
             transition: all 0.3s ease;
             border: 2px solid transparent;
+            display: flex;
+            flex-direction: column;
+            height: 400px;
         }
 
         [data-theme="dark"] .station-card {
@@ -214,8 +223,8 @@
         }
 
         .station-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 20px rgba(0,0,0,0.15);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.12);
             border-color: var(--primary-color);
         }
 
@@ -224,6 +233,8 @@
             justify-content: space-between;
             align-items: center;
             margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid var(--border-color);
         }
 
         .station-card-header h3 {
@@ -244,36 +255,93 @@
             font-size: 24px;
         }
 
-        .station-stats {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-            margin-top: 15px;
-        }
-
-        .stat-item {
-            text-align: center;
-            padding: 10px;
-            background: var(--light-bg);
+        /* Scrollable Categories Container */
+        .categories-container {
+            flex: 1;
+            overflow-y: auto;
+            margin-bottom: 15px;
+            padding-right: 5px;
+            border: 1px solid var(--border-color);
             border-radius: 8px;
+            background: var(--light-bg);
         }
 
-        [data-theme="dark"] .stat-item {
+        [data-theme="dark"] .categories-container {
             background: #1a202c;
         }
 
-        .stat-value {
-            font-size: 24px;
-            font-weight: bold;
-            color: var(--primary-color);
+        /* Category Item Styles */
+        .category-item {
+            transition: all 0.3s ease;
+            border-left: 3px solid transparent;
+            margin: 8px;
+            padding: 12px;
+            background: white;
+            border-radius: 6px;
+            cursor: pointer;
+            position: relative;
+            border: 1px solid var(--border-color);
+        }
+
+        [data-theme="dark"] .category-item {
+            background: #2d3748;
+        }
+
+        .category-item:hover {
+            background-color: rgba(201, 48, 44, 0.1) !important;
+            border-left-color: var(--primary-color);
+            transform: translateX(5px);
+        }
+
+        .category-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             margin-bottom: 5px;
         }
 
-        .stat-label {
+        .category-qr-btn {
+            background: #38a169;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
             font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            transition: all 0.3s ease;
+            min-width: 50px;
+            justify-content: center;
+        }
+
+        .category-qr-btn:hover {
+            background: #2f855a;
+            transform: scale(1.05);
+        }
+
+        .category-qr-btn.small {
+            padding: 4px 8px;
+            font-size: 11px;
+            min-width: 40px;
+        }
+
+        .category-info {
+            font-size: 11px;
             color: var(--light-text);
-            text-transform: uppercase;
-            letter-spacing: 1px;
+            margin-top: 3px;
+            line-height: 1.4;
+        }
+
+        .category-count {
+            display: inline-block;
+            background: var(--primary-color);
+            color: white;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-size: 10px;
+            margin-right: 6px;
         }
 
         /* MODAL STYLES */
@@ -287,7 +355,7 @@
             display: none;
             justify-content: center;
             align-items: center;
-            z-index: 1000;
+            z-index: 2000;
             padding: 20px;
         }
 
@@ -505,6 +573,15 @@
             background: #c53030;
         }
 
+        .btn-success {
+            background: #38a169;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #2f855a;
+        }
+
         /* CARDS CONTAINER */
         .cards-container {
             background: white;
@@ -584,7 +661,8 @@
         .action-buttons {
             display: flex;
             gap: 8px;
-            margin-top: 10px;
+            margin-top: 15px;
+            justify-content: center;
         }
 
         .btn-sm {
@@ -614,6 +692,196 @@
             background: #c53030;
         }
 
+        .btn-qr {
+            background: #38a169;
+            color: white;
+        }
+
+        .btn-qr:hover {
+            background: #2f855a;
+        }
+
+        /* Quantity Status Styles */
+        .quantity-low {
+            color: #e53e3e;
+            font-weight: bold;
+        }
+
+        .quantity-adequate {
+            color: #38a169;
+            font-weight: bold;
+        }
+
+        /* QR Popup Styles */
+        .qr-popup-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 3000;
+        }
+
+        .qr-popup-overlay.active {
+            display: flex;
+        }
+
+        .qr-popup {
+            background: white;
+            border-radius: 10px;
+            padding: 25px;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        [data-theme="dark"] .qr-popup {
+            background: #2d3748;
+        }
+
+        .qr-popup-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .qr-popup-title {
+            margin: 0;
+            color: var(--dark-text);
+        }
+
+        .qr-popup-close {
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            color: var(--light-text);
+            transition: color 0.3s ease;
+        }
+
+        .qr-popup-close:hover {
+            color: var(--primary-color);
+        }
+
+        .qr-code-container {
+            text-align: center;
+            margin: 20px 0;
+            min-height: 300px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .qr-popup-actions {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        /* Category QR Preview */
+        .qr-category-preview {
+            text-align: center;
+            margin-top: 15px;
+            padding: 10px;
+            background: var(--light-bg);
+            border-radius: 8px;
+            max-width: 300px;
+        }
+
+        .qr-category-preview h4 {
+            margin: 0 0 10px 0;
+            color: var(--dark-text);
+            font-size: 16px;
+        }
+
+        .qr-category-preview ul {
+            text-align: left;
+            margin: 0;
+            padding-left: 20px;
+            font-size: 12px;
+            color: var(--light-text);
+            max-height: 150px;
+            overflow-y: auto;
+        }
+
+        .qr-category-preview li {
+            margin-bottom: 5px;
+        }
+
+        /* QR Batch Selection */
+        .qr-batch-selection {
+            background: var(--light-bg);
+            border-radius: 8px;
+            padding: 20px;
+            margin: 15px 0;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .batch-item {
+            padding: 10px;
+            margin: 8px 0;
+            background: white;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 1px solid var(--border-color);
+        }
+
+        .batch-item:hover {
+            background: rgba(201, 48, 44, 0.1);
+            border-color: var(--primary-color);
+        }
+
+        .batch-item.active {
+            background: rgba(201, 48, 44, 0.2);
+            border-color: var(--primary-color);
+        }
+
+        /* Equipment QR button in table */
+        .table-qr-btn {
+            background: #38a169;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 11px;
+            margin: 0 3px;
+        }
+
+        .table-qr-btn:hover {
+            background: #2f855a;
+        }
+
+        /* ERROR STYLES */
+        .error-message {
+            background: #fee;
+            border: 1px solid #fcc;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .error-message i {
+            color: #e53e3e;
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+
+        .error-message h3 {
+            color: #e53e3e;
+            margin-bottom: 10px;
+        }
+
         @media (max-width: 768px) {
             .sidebar {
                 width: 70px;
@@ -627,6 +895,7 @@
             
             .main-content {
                 margin-left: 70px;
+                padding: 15px;
             }
             
             .user-profile-sidebar {
@@ -665,6 +934,26 @@
             .modal-table th, .modal-table td {
                 padding: 8px 10px;
                 font-size: 14px;
+            }
+
+            .category-item {
+                padding: 8px !important;
+                margin-bottom: 8px !important;
+            }
+            
+            .pdf-btn {
+                padding: 8px 15px;
+                font-size: 13px;
+            }
+            
+            .category-qr-btn {
+                padding: 4px 8px;
+                font-size: 10px;
+            }
+            
+            .station-card {
+                height: auto;
+                min-height: 350px;
             }
         }
     </style>
@@ -722,7 +1011,7 @@
                 <p>Manage rescue equipment inventory by station</p>
             </div>
 
-            <!-- ADD/EDIT FORM - DYNAMIC VERSION -->
+            <!-- ADD/EDIT FORM -->
             <div class="form-container">
                 <div class="form-header">
                     <h3 id="formTitle">Add New Rescue Equipment</h3>
@@ -739,7 +1028,7 @@
                         </select>
                     </div>
 
-                    <!-- Category Selection (akan muncul bila station dipilih) -->
+                    <!-- Category Selection -->
                     <div class="form-group" id="categoryGroup" style="display: none;">
                         <label for="category">Category *</label>
                         <select id="category" name="category" required onchange="onCategoryChange()">
@@ -752,16 +1041,16 @@
                         </select>
                     </div>
 
-                    <!-- Equipment Selection (akan muncul bila category dipilih) -->
+                    <!-- Equipment Selection -->
                     <div class="form-group" id="equipmentGroup" style="display: none;">
                         <label for="equipment">Equipment *</label>
                         <select id="equipment" name="equipment" required onchange="onEquipmentChange()">
                             <option value="">Select Equipment</option>
-                            <!-- Options akan diisi secara dynamic berdasarkan kategori -->
+                            <!-- Options akan diisi secara dynamic -->
                         </select>
                     </div>
 
-                    <!-- Quantity Fields (akan muncul bila equipment dipilih) -->
+                    <!-- Quantity Fields -->
                     <div id="quantityFields" style="display: none;">
                         <div class="form-row">
                             <div class="form-column">
@@ -785,14 +1074,6 @@
                         </div>
                     </div>
 
-                    <!-- Timestamp Display for Edit Mode -->
-                    <div id="timestampInfo" style="display: none;">
-                        <div class="form-group">
-                            <label>Last Updated</label>
-                            <div class="timestamp" id="lastUpdatedDisplay"></div>
-                        </div>
-                    </div>
-
                     <div class="form-actions">
                         <button type="submit" class="btn btn-primary">
                             <i class="fas fa-plus"></i> Add Equipment
@@ -804,14 +1085,14 @@
                 </form>
             </div>
 
-            <!-- CARDS CONTAINER (REPLACES TABLE) -->
+            <!-- STATION CARDS CONTAINER -->
             <div class="cards-container">
                 <div class="cards-header">
-                    <h3>Equipment by Station</h3>
+                    <h3>Equipment Categories by Station</h3>
                     <div class="cards-controls">
                         <div class="search-box">
                             <i class="fas fa-search"></i>
-                            <input type="text" id="searchRescue" placeholder="Search station or equipment..." onkeyup="searchCards()">
+                            <input type="text" id="searchRescue" placeholder="Search station or category..." onkeyup="searchCards()">
                         </div>
                         <button class="refresh-btn" onclick="refreshData()">
                             <i class="fas fa-sync-alt"></i> Refresh
@@ -835,35 +1116,68 @@
         </div>
     </div>
 
-    <!-- STATION INVENTORY MODAL -->
-    <div class="modal-overlay" id="stationModal">
+    <!-- CATEGORY INVENTORY MODAL -->
+    <div class="modal-overlay" id="categoryModal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3 id="modalStationTitle">Station Inventory</h3>
-                <button class="close-modal" onclick="closeStationModal()">&times;</button>
+                <h3 id="modalCategoryTitle">Category Inventory</h3>
+                <button class="close-modal" onclick="closeCategoryModal()">&times;</button>
             </div>
             <div class="modal-body">
                 <div class="modal-table-container">
-                    <table class="modal-table" id="modalStationTable">
+                    <table class="modal-table" id="modalCategoryTable">
                         <thead>
                             <tr>
-                                <th>Category</th>
                                 <th>Equipment</th>
                                 <th>Min Qty</th>
                                 <th>Current Qty</th>
                                 <th>Remarks</th>
-                                <th>Last Updated</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
-                        <tbody id="modalStationBody">
+                        <tbody id="modalCategoryBody">
                             <!-- Table rows akan diisi secara dynamic -->
                         </tbody>
                     </table>
                 </div>
-                <div style="margin-top: 20px; text-align: center;" id="modalActions">
+                <div style="margin-top: 20px; text-align: center;" id="modalCategoryActions">
                     <!-- Actions akan diisi secara dynamic -->
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- QR Code Popup -->
+    <div class="qr-popup-overlay" id="qrPopup">
+        <div class="qr-popup">
+            <div class="qr-popup-header">
+                <h3 class="qr-popup-title" id="qrPopupTitle">QR Code</h3>
+                <button class="qr-popup-close" onclick="closeQRPopup()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="qr-code-container" id="qrCodeContainer">
+                <div id="qrCodePlaceholder" style="text-align: center; color: var(--light-text);">
+                    <i class="fas fa-spinner fa-spin fa-2x"></i>
+                    <p>Generating QR Code...</p>
+                </div>
+                <div id="qrBatchSelection" class="qr-batch-selection" style="display: none;">
+                    <!-- Batch selection akan diisi secara dynamic -->
+                </div>
+                <div id="qrCodeWrapper" style="position: relative; display: none;">
+                    <div id="qrCodeCanvas" style="width: 280px; height: 280px;"></div>
+                    <div id="qrCategoryPreview" class="qr-category-preview" style="display: none;">
+                        <!-- Content akan diisi secara dynamic -->
+                    </div>
+                </div>
+            </div>
+            <div class="qr-popup-actions">
+                <button class="btn btn-primary" onclick="downloadQRCode()">
+                    <i class="fas fa-download"></i> Save As PNG
+                </button>
+                <button class="btn btn-secondary" onclick="closeQRPopup()">
+                    <i class="fas fa-times"></i> Close
+                </button>
             </div>
         </div>
     </div>
@@ -893,7 +1207,7 @@
             }
         }
 
-        // Firebase configuration
+        // Firebase configuration - DOUBLE CHECK THIS MATCHES YOUR PROJECT
         const firebaseConfig = {
             apiKey: "AIzaSyBf9xdF0qmVYaNWFUuEys-P5a1yuTpLdVY",
             authDomain: "project123-82272.firebaseapp.com",
@@ -904,11 +1218,19 @@
             measurementId: "G-D5P85TT95P"
         };
 
-        // Initialize Firebase
-        let app, db;
+        // Global variables
+        let app = null;
+        let db = null;
         let editingId = null;
+        let currentQRCodeElement = null;
+        let currentQRIdentifier = '';
+        let stationInventory = {
+            "Main Station": { equipmentCount: 0, items: [] },
+            "ST A": { equipmentCount: 0, items: [] },
+            "ST B": { equipmentCount: 0, items: [] }
+        };
 
-        // Equipment database based on categories
+        // Equipment database
         const equipmentDatabase = {
             "Rope Bag": [
                 "Main Line 100m (11–13mm)",
@@ -952,42 +1274,43 @@
             ]
         };
 
-        // Station inventory data
-        let stationInventory = {
-            "Main Station": { equipmentCount: 0, items: [] },
-            "ST A": { equipmentCount: 0, items: [] },
-            "ST B": { equipmentCount: 0, items: [] }
-        };
-
-        window.addEventListener('load', function() {
-            console.log("🚀 Loading rescue equipment inventory page...");
-            initializeFirebase();
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log("🚀 Page loaded, initializing...");
             updateCurrentDate();
+            initializeFirebase();
             setupFormListener();
         });
 
+        // SIMPLE FIREBASE INITIALIZATION
         function initializeFirebase() {
+            console.log("🔥 Initializing Firebase...");
+            
             try {
+                // Check if Firebase is loaded
                 if (typeof firebase === 'undefined') {
-                    console.error("❌ Firebase library not loaded");
-                    alert("Firebase library failed to load. Please check your internet connection.");
-                    return;
+                    throw new Error("Firebase SDK not loaded. Check internet connection.");
                 }
                 
+                // Initialize Firebase
                 if (!firebase.apps.length) {
                     app = firebase.initializeApp(firebaseConfig);
+                    console.log("✅ Firebase app initialized");
                 } else {
                     app = firebase.app();
+                    console.log("✅ Using existing Firebase app");
                 }
                 
+                // Get Firestore instance
                 db = firebase.firestore();
+                console.log("✅ Firestore instance obtained");
                 
-                console.log("✅ Firebase initialized successfully for inventory page");
+                // Load data
                 loadInventoryData();
                 
             } catch (error) {
                 console.error("❌ Firebase initialization error:", error);
-                console.log("⚠️ Firebase failed but navigation should still work");
+                showError("Firebase Error", error.message);
             }
         }
 
@@ -1008,7 +1331,7 @@
             const equipmentGroup = document.getElementById('equipmentGroup');
             const quantityFields = document.getElementById('quantityFields');
             
-            // Reset and hide dependent fields
+            // Reset
             document.getElementById('category').value = '';
             document.getElementById('equipment').innerHTML = '<option value="">Select Equipment</option>';
             document.getElementById('minimumQuantity').value = '';
@@ -1018,13 +1341,9 @@
             quantityFields.style.display = 'none';
             
             if (station) {
-                // Show category dropdown for ALL stations
                 categoryGroup.style.display = 'block';
             } else {
-                // Hide everything if no station selected
                 categoryGroup.style.display = 'none';
-                equipmentGroup.style.display = 'none';
-                quantityFields.style.display = 'none';
             }
         }
 
@@ -1034,7 +1353,7 @@
             const equipmentGroup = document.getElementById('equipmentGroup');
             const quantityFields = document.getElementById('quantityFields');
             
-            // Reset dependent fields
+            // Reset
             equipmentSelect.innerHTML = '<option value="">Select Equipment</option>';
             document.getElementById('minimumQuantity').value = '';
             document.getElementById('currentQuantity').value = '';
@@ -1042,10 +1361,8 @@
             quantityFields.style.display = 'none';
             
             if (category && equipmentDatabase[category]) {
-                // Show equipment dropdown
                 equipmentGroup.style.display = 'block';
                 
-                // Populate equipment options
                 equipmentDatabase[category].forEach(item => {
                     const option = document.createElement('option');
                     option.value = item;
@@ -1053,10 +1370,8 @@
                     equipmentSelect.appendChild(option);
                 });
             } else if (category) {
-                // Show equipment dropdown even if no equipment in database
                 equipmentGroup.style.display = 'block';
             } else {
-                // Hide equipment dropdown if no category selected
                 equipmentGroup.style.display = 'none';
             }
         }
@@ -1066,214 +1381,229 @@
             const quantityFields = document.getElementById('quantityFields');
             
             if (equipment) {
-                // Show quantity fields
                 quantityFields.style.display = 'block';
-                
-                // Auto-fill min quantity with latest value
-                autoFillLatestMinQty();
             } else {
-                // Hide quantity fields if no equipment selected
                 quantityFields.style.display = 'none';
             }
         }
 
-        // Auto-fill min qty dengan nilai TERAKHIR dari inventory
-        function autoFillLatestMinQty() {
+        // SAVE RESCUE DATA (WITH DUPLICATE CHECK)
+        async function saveRescueData() {
             if (!db) {
-                console.log("❌ Firebase not initialized");
-                return;
-            }
-            
-            console.log("🔍 Getting latest min quantity from inventory...");
-            
-            // Ambil record terakhir berdasarkan timestamp
-            db.collection('rescueEquipment')
-                .orderBy('timestamp', 'desc')
-                .limit(1)
-                .get()
-                .then((snapshot) => {
-                    if (!snapshot.empty) {
-                        const latestRecord = snapshot.docs[0].data();
-                        const latestMinQty = latestRecord.minimumQuantity;
-                        
-                        console.log("✅ LATEST RECORD FOUND - Min Qty:", latestMinQty);
-                        
-                        // Auto-set min qty field dengan nilai terakhir
-                        document.getElementById('minimumQuantity').value = latestMinQty;
-                        console.log("🎉 AUTO-FILLED Min Qty with latest value:", latestMinQty);
-                        
-                    } else {
-                        console.log("❌ No records found in inventory");
-                    }
-                })
-                .catch((error) => {
-                    console.log("❌ Error getting latest record:", error);
-                });
-        }
-
-        function saveRescueData() {
-            if (!db) {
-                alert("Firebase not initialized. Please refresh the page.");
+                alert("Database not ready. Please wait...");
                 return;
             }
 
             const station = document.getElementById('station').value;
             const category = document.getElementById('category').value;
             const equipment = document.getElementById('equipment').value;
-            const minQty = document.getElementById('minimumQuantity').value;
-            const currentQty = document.getElementById('currentQuantity').value;
+            const minQty = parseInt(document.getElementById('minimumQuantity').value) || 0;
+            const currQty = parseInt(document.getElementById('currentQuantity').value) || 0;
             const remarks = document.getElementById('remarks').value;
 
-            // Validation
-            if (!station) {
-                alert("Please select a Station");
+            if (!station || !category || !equipment) {
+                alert("Please fill in all required fields");
                 return;
             }
 
-            if (!category) {
-                alert("Please select a Category");
-                return;
-            }
-
-            if (!equipment) {
-                alert("Please select an Equipment");
-                return;
-            }
-
-            const formData = {
+            // Create unique ID
+            const uniqueId = `${station}|${category}|${equipment}|${Date.now()}`.replace(/[\/\s]/g, '_').replace(/[^\w\-]/g, '');
+            
+            const equipmentData = {
                 station: station,
                 category: category,
                 equipment: equipment,
-                minimumQuantity: parseInt(minQty) || 0,
-                currentQuantity: parseInt(currentQty) || 0,
-                location: station,
+                minimumQuantity: minQty,
+                currentQuantity: currQty,
                 remarks: remarks || '',
-                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                lastUpdated: firebase.firestore.FieldValue.serverTimestamp(),
+                uniqueKey: `${station}|${category}|${equipment}`
             };
 
-            // Validate quantities
-            if (formData.minimumQuantity < 0 || formData.currentQuantity < 0) {
-                alert("Quantities cannot be negative");
-                return;
-            }
-
-            if (editingId) {
-                // Update existing record
-                db.collection('rescueEquipment').doc(editingId).update(formData)
-                    .then(() => {
-                        console.log("✅ Equipment inventory updated successfully");
-                        alert("Equipment inventory updated successfully!");
-                        clearForm();
-                        loadInventoryData();
-                    })
-                    .catch(error => {
-                        console.error("❌ Error updating equipment inventory:", error);
-                        alert("Error updating equipment inventory: " + error.message);
-                    });
-            } else {
-                // Add new record
-                db.collection('rescueEquipment').add(formData)
-                    .then(() => {
-                        console.log("✅ Equipment added to inventory successfully");
-                        alert("Equipment added to inventory successfully!");
-                        clearForm();
-                        loadInventoryData();
-                    })
-                    .catch(error => {
-                        console.error("❌ Error adding equipment to inventory:", error);
-                        alert("Error adding equipment to inventory: " + error.message);
-                    });
+            try {
+                if (editingId) {
+                    // Update existing
+                    await db.collection('rescueEquipment').doc(editingId).update(equipmentData);
+                    alert("Equipment updated successfully!");
+                } else {
+                    // Check for duplicate
+                    const duplicateQuery = await db.collection('rescueEquipment')
+                        .where('uniqueKey', '==', `${station}|${category}|${equipment}`)
+                        .limit(1)
+                        .get();
+                    
+                    if (!duplicateQuery.empty) {
+                        if (confirm(`"${equipment}" already exists in ${station} - ${category}. Update instead?`)) {
+                            const duplicateDoc = duplicateQuery.docs[0];
+                            await db.collection('rescueEquipment').doc(duplicateDoc.id).update(equipmentData);
+                            alert("Equipment updated successfully!");
+                        } else {
+                            return;
+                        }
+                    } else {
+                        // Add new
+                        await db.collection('rescueEquipment').doc(uniqueId).set(equipmentData);
+                        alert("Equipment added successfully!");
+                    }
+                }
+                
+                clearForm();
+                loadInventoryData();
+                
+            } catch (error) {
+                console.error("Error saving:", error);
+                alert("Error: " + error.message);
             }
         }
 
+        // LOAD INVENTORY DATA (SIMPLE VERSION)
         function loadInventoryData() {
             const loadingMessage = document.getElementById('loadingMessage');
             const noDataMessage = document.getElementById('noDataMessage');
-            const cardsContainer = document.getElementById('stationCardsContainer');
-
+            
             if (!db) {
-                console.error("❌ Firestore not initialized");
-                if (loadingMessage) {
-                    loadingMessage.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Firebase not initialized';
-                }
+                console.error("Database not ready");
+                showLoadingError();
                 return;
             }
-
+            
             console.log("📡 Loading inventory data...");
-
-            // Reset inventory data
+            
+            // Show loading
+            if (loadingMessage) loadingMessage.style.display = 'block';
+            if (noDataMessage) noDataMessage.style.display = 'none';
+            
+            // Reset data
             stationInventory = {
                 "Main Station": { equipmentCount: 0, items: [] },
                 "ST A": { equipmentCount: 0, items: [] },
                 "ST B": { equipmentCount: 0, items: [] }
             };
-
-            // Load all data without complex queries
-            db.collection('rescueEquipment')
-                .get()
-                .then((snapshot) => {
-                    console.log("📊 Inventory data loaded:", snapshot.size, "items");
+            
+            // Simple query - no complex ordering
+            db.collection("rescueEquipment").get()
+                .then((querySnapshot) => {
+                    console.log("✅ Data loaded:", querySnapshot.size, "documents");
+                    
                     if (loadingMessage) loadingMessage.style.display = 'none';
                     
-                    if (snapshot.empty) {
-                        console.log("ℹ️ No inventory data found");
-                        if (noDataMessage) noDataMessage.style.display = 'block';
-                        if (cardsContainer) cardsContainer.style.display = 'none';
-                        
-                        // Show empty station cards
-                        displayStationCards();
+                    if (querySnapshot.empty) {
+                        console.log("No data found");
+                        showEmptyState();
                         return;
                     }
-
-                    if (noDataMessage) noDataMessage.style.display = 'none';
-                    if (cardsContainer) cardsContainer.style.display = 'grid';
                     
-                    // Process all inventory items
-                    snapshot.forEach((doc) => {
-                        const data = doc.data();
-                        const id = doc.id;
-                        
-                        // Determine station
-                        let station = data.station || data.location || 'Main Station';
-                        if (!['Main Station', 'ST A', 'ST B'].includes(station)) {
-                            station = 'Main Station';
+                    // Process each document
+                    querySnapshot.forEach((doc) => {
+                        try {
+                            const data = doc.data();
+                            const id = doc.id;
+                            
+                            // Get station or default to Main Station
+                            let station = data.station || "Main Station";
+                            if (!["Main Station", "ST A", "ST B"].includes(station)) {
+                                station = "Main Station";
+                            }
+                            
+                            // Add to inventory
+                            const item = {
+                                id: id,
+                                station: station,
+                                category: data.category || "Uncategorized",
+                                equipment: data.equipment || "Unknown",
+                                minimumQuantity: data.minimumQuantity || 0,
+                                currentQuantity: data.currentQuantity || 0,
+                                remarks: data.remarks || "",
+                                timestamp: data.lastUpdated
+                            };
+                            
+                            stationInventory[station].items.push(item);
+                            stationInventory[station].equipmentCount++;
+                            
+                        } catch (error) {
+                            console.warn("Error processing document:", error);
                         }
-                        
-                        // Add item to station inventory
-                        const itemData = {
-                            id: id,
-                            category: data.category || 'Uncategorized',
-                            equipment: data.equipment || 'N/A',
-                            minimumQuantity: data.minimumQuantity || 0,
-                            currentQuantity: data.currentQuantity || 0,
-                            remarks: data.remarks || '',
-                            timestamp: data.timestamp
-                        };
-                        
-                        stationInventory[station].items.push(itemData);
-                        stationInventory[station].equipmentCount++;
                     });
                     
-                    // Display station cards
+                    // Display the data
                     displayStationCards();
                     
-                    console.log("✅ Inventory cards displayed successfully");
-                    
-                }, (error) => {
-                    console.error('❌ Error loading inventory data:', error);
-                    if (loadingMessage) loadingMessage.style.display = 'none';
-                    if (noDataMessage) {
-                        noDataMessage.style.display = 'block';
-                        noDataMessage.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Error loading inventory data. Please try refreshing.';
-                    }
+                })
+                .catch((error) => {
+                    console.error("❌ Error loading data:", error);
+                    showLoadingError(error.message);
                 });
         }
 
+        function showLoadingError(errorMsg = "") {
+            const loadingMessage = document.getElementById('loadingMessage');
+            const noDataMessage = document.getElementById('noDataMessage');
+            
+            if (loadingMessage) loadingMessage.style.display = 'none';
+            
+            if (noDataMessage) {
+                noDataMessage.style.display = 'block';
+                noDataMessage.innerHTML = `
+                    <div class="error-message">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <h3>Error Loading Data</h3>
+                        <p>${errorMsg || "Could not load inventory data."}</p>
+                        <p style="font-size: 12px; margin-top: 10px;">Please check:</p>
+                        <ul style="text-align: left; display: inline-block; margin: 10px 0;">
+                            <li>Internet connection</li>
+                            <li>Firestore database rules</li>
+                            <li>Collection name (should be 'rescueEquipment')</li>
+                        </ul>
+                        <br>
+                        <button class="btn btn-primary" onclick="retryLoadData()">
+                            <i class="fas fa-sync-alt"></i> Retry
+                        </button>
+                    </div>
+                `;
+            }
+        }
+
+        function showEmptyState() {
+            const noDataMessage = document.getElementById('noDataMessage');
+            const cardsContainer = document.getElementById('stationCardsContainer');
+            
+            if (noDataMessage) {
+                noDataMessage.style.display = 'block';
+                noDataMessage.innerHTML = `
+                    <i class="fas fa-inbox" style="font-size: 48px; margin-bottom: 15px;"></i>
+                    <h3>No Equipment Found</h3>
+                    <p style="margin-bottom: 20px;">Start by adding your first equipment item.</p>
+                    <button class="btn btn-primary" onclick="scrollToForm()">
+                        <i class="fas fa-plus"></i> Add First Equipment
+                    </button>
+                `;
+            }
+            
+            if (cardsContainer) {
+                cardsContainer.innerHTML = '';
+            }
+        }
+
+        function retryLoadData() {
+            console.log("🔄 Retrying data load...");
+            loadInventoryData();
+        }
+
+        function scrollToForm() {
+            document.querySelector('.form-container').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // DISPLAY STATION CARDS
         function displayStationCards() {
             const cardsContainer = document.getElementById('stationCardsContainer');
-            let cardsHtml = '';
+            const noDataMessage = document.getElementById('noDataMessage');
             
-            // Create card for each station
+            if (!cardsContainer) return;
+            
+            // Hide no data message
+            if (noDataMessage) noDataMessage.style.display = 'none';
+            
+            let cardsHtml = '';
             const stations = ['Main Station', 'ST A', 'ST B'];
             
             stations.forEach(station => {
@@ -1282,22 +1612,20 @@
                              station === 'ST A' ? 'fas fa-fire-extinguisher' : 
                              'fas fa-tools';
                 
-                // Get recent items (max 3 items for compact display)
-                const recentItems = inventory.items.slice(0, 3).map(item => {
-                    const shortName = item.equipment.length > 20 ? item.equipment.substring(0, 20) + '...' : item.equipment;
-                    
-                    return `
-                        <div style="margin-bottom: 6px; padding: 5px; background: rgba(0,0,0,0.03); border-radius: 4px; font-size: 12px;">
-                            <div style="font-weight: 500; color: var(--dark-text);">${shortName}</div>
-                            <div style="display: flex; justify-content: space-between; font-size: 11px; margin-top: 2px;">
-                                <span style="color: var(--light-text);">Qty: ${item.currentQuantity}</span>
-                            </div>
-                        </div>
-                    `;
-                }).join('');
+                // Get categories for this station
+                const categories = {};
+                inventory.items.forEach(item => {
+                    const cat = item.category || 'Uncategorized';
+                    if (!categories[cat]) {
+                        categories[cat] = [];
+                    }
+                    categories[cat].push(item);
+                });
+                
+                const categoryNames = Object.keys(categories).sort();
                 
                 cardsHtml += `
-                    <div class="station-card" onclick="viewStationInventory('${station}')">
+                    <div class="station-card">
                         <div class="station-card-header">
                             <h3>${station}</h3>
                             <div class="station-icon">
@@ -1305,323 +1633,459 @@
                             </div>
                         </div>
                         
-                        <div style="margin-bottom: 15px; min-height: 80px;">
-                            ${recentItems || '<div style="text-align: center; padding: 10px; color: var(--light-text); font-style: italic; font-size: 14px;">No equipment</div>'}
-                            ${inventory.items.length > 3 ? 
-                                `<div style="text-align: center; margin-top: 5px; font-size: 11px; color: var(--primary-color);">
-                                    +${inventory.items.length - 3} more items
-                                </div>` : ''}
+                        <div class="categories-container">
+                            ${categoryNames.length > 0 ? 
+                                categoryNames.map(category => {
+                                    const items = categories[category];
+                                    const itemNames = items.map(item => item.equipment).slice(0, 2).join(', ');
+                                    
+                                    return `
+                                        <div class="category-item" onclick="viewCategoryInventory('${station}', '${category}')">
+                                            <div class="category-header">
+                                                <div style="font-weight: 500; color: var(--dark-text); flex: 1;">
+                                                    ${category}
+                                                </div>
+                                                <button class="category-qr-btn" 
+                                                        onclick="event.stopPropagation(); generateCategoryQR('${station}', '${category}')"
+                                                        title="Generate QR Code">
+                                                    <i class="fas fa-qrcode"></i> QR
+                                                </button>
+                                            </div>
+                                            <div class="category-info">
+                                                <span class="category-count">${items.length}</span>
+                                                ${itemNames}${items.length > 2 ? '...' : ''}
+                                            </div>
+                                        </div>
+                                    `;
+                                }).join('') : 
+                                '<div style="text-align: center; padding: 40px 20px; color: var(--light-text); font-style: italic;">No equipment categories</div>'
+                            }
                         </div>
                         
-                        <div class="station-stats">
-                            <div class="stat-item">
-                                <div class="stat-value">${inventory.equipmentCount}</div>
-                                <div class="stat-label">Total Items</div>
-                            </div>
-                            <div class="stat-item">
-                                <div class="stat-value">${inventory.items.length}</div>
-                                <div class="stat-label">Equipment</div>
-                            </div>
-                        </div>
-                        
-                        <!-- Quick Actions -->
-                        <div class="action-buttons" style="margin-top: 15px; justify-content: center;">
-                            <button class="btn-sm btn-primary" onclick="event.stopPropagation(); addEquipmentForStation('${station}')" style="background: var(--primary-color);">
-                                <i class="fas fa-plus"></i> Add
+                        <div class="action-buttons">
+                            <button class="btn-sm btn-primary" onclick="addEquipmentForStation('${station}')" style="background: var(--primary-color);">
+                                <i class="fas fa-plus"></i> Add Equipment
                             </button>
-                            ${inventory.items.length > 0 ? `
-                            <button class="btn-sm btn-edit" onclick="event.stopPropagation(); viewStationInventory('${station}')">
-                                <i class="fas fa-list"></i> View All
-                            </button>
-                            ` : ''}
                         </div>
                     </div>
                 `;
             });
             
             cardsContainer.innerHTML = cardsHtml;
+            cardsContainer.style.display = 'grid';
         }
 
-        function searchCards() {
-            const searchTerm = document.getElementById('searchRescue').value.toLowerCase();
-            const cards = document.querySelectorAll('.station-card');
+        // VIEW CATEGORY INVENTORY
+        function viewCategoryInventory(stationName, categoryName) {
+            // Get items for this category
+            const items = stationInventory[stationName]?.items.filter(item => 
+                item.category === categoryName
+            ) || [];
             
-            if (!searchTerm.trim()) {
-                // Show all cards if search is empty
-                cards.forEach(card => {
-                    card.style.display = 'block';
-                });
-                return;
-            }
-            
-            cards.forEach(card => {
-                const stationName = card.querySelector('h3').textContent.toLowerCase();
-                const equipmentText = card.textContent.toLowerCase();
-                
-                if (stationName.includes(searchTerm) || equipmentText.includes(searchTerm)) {
-                    card.style.display = 'block';
-                } else {
-                    card.style.display = 'none';
-                }
-            });
-        }
-
-        function addEquipmentForStation(station) {
-            // Set the station in the form
-            document.getElementById('station').value = station;
-            
-            // Trigger the station change to show category dropdown
-            onStationChange();
-            
-            // Scroll to form
-            document.querySelector('.form-container').scrollIntoView({ behavior: 'smooth' });
-        }
-
-        // STATION INVENTORY MODAL FUNCTIONS - TABLE VERSION
-        function viewStationInventory(stationName) {
             // Set modal title
-            document.getElementById('modalStationTitle').textContent = `${stationName} - Equipment Inventory`;
+            document.getElementById('modalCategoryTitle').textContent = `${stationName} - ${categoryName}`;
             
-            // Show loading in modal table
-            document.getElementById('modalStationBody').innerHTML = `
-                <tr>
-                    <td colspan="7" style="text-align: center; padding: 40px;">
-                        <i class="fas fa-spinner fa-spin"></i> Loading inventory data...
-                    </td>
-                </tr>
-            `;
-            
-            // Show modal
-            document.getElementById('stationModal').style.display = 'flex';
-            
-            // Get inventory for this station
-            const inventory = stationInventory[stationName];
-            
-            if (!inventory || inventory.items.length === 0) {
-                document.getElementById('modalStationBody').innerHTML = `
-                    <tr>
-                        <td colspan="7" style="text-align: center; padding: 40px;">
-                            <i class="fas fa-inbox"></i> No equipment in inventory for ${stationName}
-                        </td>
-                    </tr>
-                `;
-                
-                document.getElementById('modalActions').innerHTML = `
-                    <button class="btn btn-primary" onclick="addEquipmentForStation('${stationName}'); closeStationModal();">
-                        <i class="fas fa-plus"></i> Add Equipment to ${stationName}
-                    </button>
-                `;
-                return;
-            }
-            
-            // Sort items by category and equipment name
-            const sortedItems = [...inventory.items].sort((a, b) => {
-                // First sort by category
-                const categoryCompare = (a.category || '').localeCompare(b.category || '');
-                if (categoryCompare !== 0) return categoryCompare;
-                
-                // Then sort by equipment name
-                return (a.equipment || '').localeCompare(b.equipment || '');
-            });
-            
-            // Build table rows
+            // Build table
             let tableHtml = '';
             
-            sortedItems.forEach(item => {
-                // Format timestamp
-                let timestampDisplay = 'N/A';
-                if (item.timestamp) {
-                    try {
-                        const timestamp = item.timestamp.toDate();
-                        timestampDisplay = timestamp.toLocaleString('en-US', {
-                            month: 'short',
-                            day: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                        });
-                    } catch (e) {
-                        timestampDisplay = 'N/A';
-                    }
-                }
-                
-                tableHtml += `
+            if (items.length === 0) {
+                tableHtml = `
                     <tr>
-                        <td>${item.category || 'Uncategorized'}</td>
-                        <td>${item.equipment}</td>
-                        <td>${item.minimumQuantity}</td>
-                        <td>${item.currentQuantity}</td>
-                        <td>${item.remarks || ''}</td>
-                        <td>${timestampDisplay}</td>
-                        <td>
-                            <div class="action-buttons" style="justify-content: flex-start;">
-                                <button class="btn-sm btn-edit" onclick="editRescue('${item.id}')">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                                <button class="btn-sm btn-delete" onclick="deleteRescue('${item.id}')">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </div>
+                        <td colspan="5" style="text-align: center; padding: 40px;">
+                            <i class="fas fa-inbox"></i> No equipment found
                         </td>
                     </tr>
                 `;
-            });
+            } else {
+                items.forEach(item => {
+                    const currentQty = item.currentQuantity;
+                    const minQty = item.minimumQuantity;
+                    const qtyClass = currentQty < minQty ? 'quantity-low' : 'quantity-adequate';
+                    
+                    tableHtml += `
+                        <tr>
+                            <td>${item.equipment}</td>
+                            <td>${minQty}</td>
+                            <td class="${qtyClass}">${currentQty}</td>
+                            <td>${item.remarks || ''}</td>
+                            <td>
+                                <div style="display: flex; gap: 5px;">
+                                    <button class="table-qr-btn" onclick="generateSingleEquipmentQR('${item.id}')" title="QR Code">
+                                        <i class="fas fa-qrcode"></i>
+                                    </button>
+                                    <button class="table-qr-btn" style="background: #4299e1;" onclick="editRescue('${item.id}')" title="Edit">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="table-qr-btn" style="background: #e53e3e;" onclick="deleteRescue('${item.id}')" title="Delete">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                });
+            }
             
-            document.getElementById('modalStationBody').innerHTML = tableHtml;
+            document.getElementById('modalCategoryBody').innerHTML = tableHtml;
             
-            // Add action buttons
-            document.getElementById('modalActions').innerHTML = `
-                <div style="display: flex; gap: 15px; justify-content: center;">
-                    <button class="btn btn-primary" onclick="addEquipmentForStation('${stationName}'); closeStationModal();">
-                        <i class="fas fa-plus"></i> Add More Equipment
+            // Set actions
+            document.getElementById('modalCategoryActions').innerHTML = `
+                <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+                    <button class="btn btn-primary" onclick="addEquipmentForCategory('${stationName}', '${categoryName}'); closeCategoryModal();">
+                        <i class="fas fa-plus"></i> Add Equipment
                     </button>
-                    <button class="btn btn-secondary" onclick="closeStationModal()">
+                    <button class="btn btn-success" onclick="generateCategoryQR('${stationName}', '${categoryName}');">
+                        <i class="fas fa-qrcode"></i> Generate QR
+                    </button>
+                    <button class="btn btn-secondary" onclick="closeCategoryModal()">
                         <i class="fas fa-times"></i> Close
                     </button>
                 </div>
             `;
+            
+            // Show modal
+            document.getElementById('categoryModal').style.display = 'flex';
         }
 
-        function closeStationModal() {
-            document.getElementById('stationModal').style.display = 'none';
-        }
-
-        // Close modal when clicking outside
-        document.getElementById('stationModal').addEventListener('click', function(e) {
-            if (e.target === this) {
-                closeStationModal();
-            }
-        });
-
-        function editRescue(id) {
-            if (!db) {
-                alert("Firebase not initialized. Please refresh the page.");
+        // GENERATE QR CODE (ULTRA SIMPLE)
+        function generateCategoryQR(stationName, categoryName) {
+            const items = stationInventory[stationName]?.items.filter(item => 
+                item.category === categoryName
+            ) || [];
+            
+            if (items.length === 0) {
+                alert("No equipment found in this category");
                 return;
             }
+            
+            // Create minimal QR data
+            const qrData = {
+                t: "rescue",
+                s: stationName.substring(0, 2).toUpperCase(),
+                c: categoryName.substring(0, 2).toUpperCase(),
+                n: items.length,
+                ts: Date.now()
+            };
+            
+            const qrDataString = JSON.stringify(qrData);
+            console.log("QR Data length:", qrDataString.length);
+            
+            // Show QR popup
+            showQRPopup(qrDataString, stationName, categoryName, items);
+        }
 
-            console.log("🔄 Editing equipment with ID:", id);
+        function generateSingleEquipmentQR(equipmentId) {
+            // Find the equipment
+            let equipment = null;
+            for (const station in stationInventory) {
+                const found = stationInventory[station].items.find(item => item.id === equipmentId);
+                if (found) {
+                    equipment = found;
+                    break;
+                }
+            }
+            
+            if (!equipment) {
+                alert("Equipment not found");
+                return;
+            }
+            
+            // Minimal QR data
+            const qrData = {
+                t: "equip",
+                id: equipmentId.substring(0, 8),
+                n: equipment.equipment.substring(0, 15),
+                c: equipment.currentQuantity,
+                m: equipment.minimumQuantity,
+                s: equipment.station.substring(0, 2),
+                ts: Date.now()
+            };
+            
+            const qrDataString = JSON.stringify(qrData);
+            showSingleEquipmentQRPopup(qrDataString, equipment);
+        }
+
+        function showQRPopup(qrDataString, stationName, categoryName, items) {
+            document.getElementById('qrPopupTitle').textContent = `${stationName} - ${categoryName}`;
+            document.getElementById('qrCodePlaceholder').style.display = 'block';
+            document.getElementById('qrCodeWrapper').style.display = 'none';
+            
+            const qrContainer = document.getElementById('qrCodeCanvas');
+            qrContainer.innerHTML = '';
+            
+            document.getElementById('qrPopup').classList.add('active');
+            
+            setTimeout(() => {
+                try {
+                    if (typeof QRCode === 'undefined') {
+                        throw new Error("QRCode library not loaded");
+                    }
+                    
+                    // Generate QR
+                    new QRCode(qrContainer, {
+                        text: qrDataString,
+                        width: 280,
+                        height: 280,
+                        colorDark: "#000000",
+                        colorLight: "#FFFFFF"
+                    });
+                    
+                    setTimeout(() => {
+                        const qrImage = qrContainer.querySelector('img');
+                        if (qrImage) {
+                            currentQRCodeElement = qrImage;
+                            currentQRIdentifier = `${stationName}_${categoryName}`.replace(/\s+/g, '_');
+                            
+                            document.getElementById('qrCodePlaceholder').style.display = 'none';
+                            document.getElementById('qrCodeWrapper').style.display = 'block';
+                            
+                            // Show preview
+                            const previewHtml = `
+                                <h4>${categoryName}</h4>
+                                <p><strong>Station:</strong> ${stationName}</p>
+                                <p><strong>Items:</strong> ${items.length}</p>
+                                <p style="font-size: 10px; color: #666; margin-top: 10px;">
+                                    Scan to view details
+                                </p>
+                            `;
+                            document.getElementById('qrCategoryPreview').innerHTML = previewHtml;
+                            document.getElementById('qrCategoryPreview').style.display = 'block';
+                        }
+                    }, 500);
+                    
+                } catch (error) {
+                    console.error("QR Error:", error);
+                    alert("QR Generation Error: " + error.message);
+                }
+            }, 100);
+        }
+
+        function showSingleEquipmentQRPopup(qrDataString, equipment) {
+            document.getElementById('qrPopupTitle').textContent = equipment.equipment;
+            document.getElementById('qrCodePlaceholder').style.display = 'block';
+            document.getElementById('qrCodeWrapper').style.display = 'none';
+            
+            const qrContainer = document.getElementById('qrCodeCanvas');
+            qrContainer.innerHTML = '';
+            
+            document.getElementById('qrPopup').classList.add('active');
+            
+            setTimeout(() => {
+                try {
+                    if (typeof QRCode === 'undefined') {
+                        throw new Error("QRCode library not loaded");
+                    }
+                    
+                    new QRCode(qrContainer, {
+                        text: qrDataString,
+                        width: 280,
+                        height: 280,
+                        colorDark: "#000000",
+                        colorLight: "#FFFFFF"
+                    });
+                    
+                    setTimeout(() => {
+                        const qrImage = qrContainer.querySelector('img');
+                        if (qrImage) {
+                            currentQRCodeElement = qrImage;
+                            currentQRIdentifier = equipment.equipment.replace(/\s+/g, '_');
+                            
+                            document.getElementById('qrCodePlaceholder').style.display = 'none';
+                            document.getElementById('qrCodeWrapper').style.display = 'block';
+                            
+                            // Show preview
+                            const previewHtml = `
+                                <h4>${equipment.equipment}</h4>
+                                <p><strong>Station:</strong> ${equipment.station}</p>
+                                <p><strong>Category:</strong> ${equipment.category}</p>
+                                <p><strong>Current:</strong> ${equipment.currentQuantity}</p>
+                                <p><strong>Min:</strong> ${equipment.minimumQuantity}</p>
+                            `;
+                            document.getElementById('qrCategoryPreview').innerHTML = previewHtml;
+                            document.getElementById('qrCategoryPreview').style.display = 'block';
+                        }
+                    }, 500);
+                    
+                } catch (error) {
+                    console.error("QR Error:", error);
+                    alert("QR Generation Error: " + error.message);
+                }
+            }, 100);
+        }
+
+        function closeQRPopup() {
+            document.getElementById('qrPopup').classList.remove('active');
+        }
+
+        function downloadQRCode() {
+            if (!currentQRCodeElement) {
+                alert("No QR code to download");
+                return;
+            }
+            
+            try {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.width = 400;
+                canvas.height = 450;
+                
+                // White background
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                // Draw QR
+                ctx.drawImage(currentQRCodeElement, 60, 20, 280, 280);
+                
+                // Draw text
+                ctx.fillStyle = '#000000';
+                ctx.font = '14px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText(currentQRIdentifier.replace(/_/g, ' '), 200, 320);
+                ctx.font = '10px Arial';
+                ctx.fillText(new Date().toLocaleDateString(), 200, 340);
+                
+                // Download
+                const link = document.createElement('a');
+                link.download = `qr_${currentQRIdentifier}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+                
+                alert("QR Code downloaded!");
+                
+            } catch (error) {
+                console.error("Download error:", error);
+                alert("Download failed: " + error.message);
+            }
+        }
+
+        // EDIT RESCUE
+        function editRescue(id) {
+            if (!db) return;
             
             db.collection('rescueEquipment').doc(id).get()
                 .then((doc) => {
                     if (doc.exists) {
                         const data = doc.data();
                         
-                        // Fill form with existing data
-                        document.getElementById('station').value = data.station || data.location || '';
+                        document.getElementById('station').value = data.station || '';
                         document.getElementById('category').value = data.category || '';
                         document.getElementById('equipment').value = data.equipment || '';
                         document.getElementById('minimumQuantity').value = data.minimumQuantity || '';
                         document.getElementById('currentQuantity').value = data.currentQuantity || '';
                         document.getElementById('remarks').value = data.remarks || '';
                         
-                        // Trigger dynamic form updates
+                        // Show form sections
                         onStationChange();
+                        setTimeout(() => {
+                            onCategoryChange();
+                            setTimeout(() => {
+                                document.getElementById('equipmentGroup').style.display = 'block';
+                                document.getElementById('quantityFields').style.display = 'block';
+                            }, 100);
+                        }, 100);
                         
-                        // If category exists, populate equipment dropdown
-                        if (data.category && equipmentDatabase[data.category]) {
-                            const equipmentSelect = document.getElementById('equipment');
-                            equipmentSelect.innerHTML = '<option value="">Select Equipment</option>';
-                            
-                            equipmentDatabase[data.category].forEach(item => {
-                                const option = document.createElement('option');
-                                option.value = item;
-                                option.textContent = item;
-                                if (item === data.equipment) {
-                                    option.selected = true;
-                                }
-                                equipmentSelect.appendChild(option);
-                            });
-                            
-                            // Show equipment group
-                            document.getElementById('equipmentGroup').style.display = 'block';
-                            document.getElementById('quantityFields').style.display = 'block';
-                        }
-                        
-                        // Show timestamp information
-                        if (data.timestamp) {
-                            const timestamp = data.timestamp.toDate();
-                            const formattedDate = timestamp.toLocaleString('en-US', {
-                                year: 'numeric',
-                                month: 'long',
-                                day: 'numeric',
-                                hour: '2-digit',
-                                minute: '2-digit',
-                                second: '2-digit'
-                            });
-                            document.getElementById('lastUpdatedDisplay').textContent = formattedDate;
-                            document.getElementById('timestampInfo').style.display = 'block';
-                        }
-                        
-                        // Change form to edit mode
                         editingId = id;
-                        document.getElementById('formTitle').textContent = 'Edit Rescue Equipment';
+                        document.getElementById('formTitle').textContent = 'Edit Equipment';
                         document.querySelector('button[type="submit"]').innerHTML = '<i class="fas fa-save"></i> Update Equipment';
                         
-                        // Close modal
-                        closeStationModal();
-                        
-                        // Scroll to form
+                        closeCategoryModal();
                         document.querySelector('.form-container').scrollIntoView({ behavior: 'smooth' });
-                        
-                        console.log("✅ Editing equipment:", id);
                     }
                 })
                 .catch((error) => {
-                    console.error("❌ Error loading equipment for edit:", error);
-                    alert("Error loading equipment data: " + error.message);
+                    console.error("Edit error:", error);
+                    alert("Error: " + error.message);
                 });
         }
 
+        // DELETE RESCUE
         function deleteRescue(id) {
-            if (!confirm("Are you sure you want to delete this equipment from inventory?")) {
-                return;
-            }
-
-            if (!db) {
-                alert("Firebase not initialized. Please refresh the page.");
-                return;
-            }
-
+            if (!confirm("Delete this equipment?")) return;
+            
+            if (!db) return;
+            
             db.collection('rescueEquipment').doc(id).delete()
                 .then(() => {
-                    console.log("✅ Equipment deleted successfully");
-                    alert("Equipment deleted successfully from inventory!");
+                    alert("Deleted successfully!");
                     loadInventoryData();
-                    closeStationModal();
+                    closeCategoryModal();
                 })
                 .catch((error) => {
-                    console.error("❌ Error deleting equipment:", error);
-                    alert("Error deleting equipment: " + error.message);
+                    console.error("Delete error:", error);
+                    alert("Error: " + error.message);
                 });
         }
 
+        // OTHER FUNCTIONS
         function clearForm() {
             document.getElementById('rescueForm').reset();
             editingId = null;
             document.getElementById('formTitle').textContent = 'Add New Rescue Equipment';
             document.querySelector('button[type="submit"]').innerHTML = '<i class="fas fa-plus"></i> Add Equipment';
-            document.getElementById('timestampInfo').style.display = 'none';
             
-            // Reset dynamic form sections
             document.getElementById('categoryGroup').style.display = 'none';
             document.getElementById('equipmentGroup').style.display = 'none';
             document.getElementById('quantityFields').style.display = 'none';
         }
 
-        window.refreshData = function() {
-            console.log("🔄 Manually refreshing inventory data...");
-            const loadingMessage = document.getElementById('loadingMessage');
-            const noDataMessage = document.getElementById('noDataMessage');
-            const cardsContainer = document.getElementById('stationCardsContainer');
-            
-            if (loadingMessage) loadingMessage.style.display = 'block';
-            if (noDataMessage) noDataMessage.style.display = 'none';
-            if (cardsContainer) cardsContainer.style.display = 'none';
-            
+        function addEquipmentForCategory(station, category) {
+            document.getElementById('station').value = station;
+            onStationChange();
             setTimeout(() => {
-                loadInventoryData();
-            }, 500);
+                document.getElementById('category').value = category;
+                onCategoryChange();
+                document.querySelector('.form-container').scrollIntoView({ behavior: 'smooth' });
+            }, 100);
+        }
+
+        function addEquipmentForStation(station) {
+            document.getElementById('station').value = station;
+            onStationChange();
+            document.querySelector('.form-container').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function closeCategoryModal() {
+            document.getElementById('categoryModal').style.display = 'none';
+        }
+
+        function searchCards() {
+            const searchTerm = document.getElementById('searchRescue').value.toLowerCase();
+            const cards = document.querySelectorAll('.station-card');
+            
+            if (!searchTerm) {
+                cards.forEach(card => card.style.display = 'flex');
+                return;
+            }
+            
+            cards.forEach(card => {
+                const text = card.textContent.toLowerCase();
+                card.style.display = text.includes(searchTerm) ? 'flex' : 'none';
+            });
+        }
+
+        function refreshData() {
+            loadInventoryData();
+        }
+
+        function showError(title, message) {
+            alert(`${title}: ${message}`);
+        }
+
+        // Close modal when clicking outside
+        document.getElementById('categoryModal').addEventListener('click', function(e) {
+            if (e.target === this) closeCategoryModal();
+        });
+
+        document.getElementById('qrPopup').addEventListener('click', function(e) {
+            if (e.target === this) closeQRPopup();
+        });
+
+        // Debug function
+        window.debugData = function() {
+            console.log("Station Inventory:", stationInventory);
+            console.log("Firebase App:", app);
+            console.log("Firestore DB:", db);
         };
     </script>
 </body>
 </html>
-
