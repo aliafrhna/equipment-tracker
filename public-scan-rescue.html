@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rescue Equipmentn</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="scanner.css">
+    <style>
+        /* BACKGROUND IMAGE */
+        body {
+            background-image: url('images/rescue.jpg');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+        }
+
+        .popup-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .popup-header h1 { flex-grow: 1; }
+        .header-buttons { display: flex; gap: 10px; }
+        .back-btn {
+            background-color: #6c757d; color: white; border: none; padding: 8px 15px;
+            border-radius: 5px; cursor: pointer; display: flex; align-items: center;
+            gap: 5px; font-size: 14px; display: none;
+        }
+        .back-btn:hover { background-color: #5a6268; }
+        .close-btn {
+            background-color: #dc3545; color: white; border: none; padding: 8px 15px;
+            border-radius: 5px; cursor: pointer; display: flex; align-items: center;
+            gap: 5px; font-size: 14px;
+        }
+        .close-btn:hover { background-color: #c82333; }
+
+        .equipment-table {
+            width: 100%; border-collapse: collapse; margin-top: 20px; background-color: white;
+            border-radius: 8px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .equipment-table th {
+            background-color: #2c3e50; color: white; padding: 12px; text-align: left; font-weight: 600;
+        }
+        .equipment-table td { padding: 12px; border-bottom: 1px solid #eee; }
+        .equipment-table tr:hover { background-color: #f8f9fa; }
+        .equipment-table input[type="number"] {
+            width: 80px; padding: 6px; border: 1px solid #ddd; border-radius: 4px; text-align: center;
+        }
+        .equipment-table textarea {
+            width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px;
+            resize: vertical; min-height: 60px;
+        }
+        .status-checkbox { width: 24px; height: 24px; cursor: pointer; }
+
+        .bag-info-grid {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;
+            background-color: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .info-item { display: flex; flex-direction: column; gap: 5px; }
+        .info-label { font-weight: bold; color: #2c3e50; font-size: 14px; }
+        .info-value {
+            font-size: 16px; color: #34495e; padding: 8px; background-color: #f8f9fa;
+            border-radius: 4px; border: 1px solid #e9ecef;
+        }
+        .full-width { grid-column: 1 / -1; }
+
+        .inspection-section { margin-top: 20px; text-align: center; }
+        .inspection-btn {
+            background-color: #dc3545; color: white; border: none; padding: 12px 25px;
+            border-radius: 5px; cursor: pointer; font-size: 16px; font-weight: bold;
+            display: inline-flex; align-items: center; gap: 8px; transition: background-color 0.3s;
+        }
+        .inspection-btn:hover { background-color: #c82333; }
+        .inspection-btn.green { background-color: #28a745; }
+        .inspection-btn.green:hover { background-color: #218838; }
+
+        .save-section { margin-top: 20px; text-align: center; }
+        .save-btn {
+            background-color: #28a745; color: white; border: none; padding: 12px 25px;
+            border-radius: 5px; cursor: pointer; font-size: 16px; font-weight: bold;
+            display: inline-flex; align-items: center; gap: 8px; transition: background-color 0.3s;
+        }
+        .save-btn:hover { background-color: #218838; }
+        .save-success {
+            background-color: #d4edda; color: #155724; padding: 12px; border-radius: 5px;
+            margin-top: 15px; text-align: center; font-weight: bold;
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="info-popup">
+        <div class="popup-header">
+            <h1><i class="fas fa-life-ring"></i> Rescue Equipment Inspection</h1>
+            <div class="header-buttons">
+                <button class="close-btn" onclick="closePopup()"><i class="fas fa-times"></i></button>
+            </div>
+        </div>
+
+        <div class="loading-container" id="loadingMessage">
+            <i class="fas fa-spinner fa-spin fa-2x"></i>
+            <p>Loading rescue equipment information...</p>
+        </div>
+
+        <div class="error-container" id="errorMessage" style="display: none;">
+            <i class="fas fa-exclamation-triangle fa-2x"></i>
+            <p id="errorText"></p>
+            <button class="action-btn" onclick="retryLoading()"><i class="fas fa-redo"></i> Try Again</button>
+        </div>
+
+        <div id="rescueInfoContent" style="display: none;">
+            <div class="bag-info-grid" id="bagInfo">
+                <div class="info-item">
+                    <div class="info-label">Category</div>
+                    <div class="info-value" id="category">-</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Location</div>
+                    <div class="info-value" id="location">-</div>
+                </div>
+                <div class="info-item full-width" id="bagIdRow">
+                    <div class="info-label">Bag ID</div>
+                    <div class="info-value" id="bagId">-</div>
+                </div>
+            </div>
+
+            <div class="equipment-section">
+                <h3><i class="fas fa-tools"></i> <span id="categoryTitle">Equipment</span></h3>
+                <table class="equipment-table" id="equipmentTable">
+                    <thead>
+                        <tr>
+                            <th>Equipment Name</th>
+                            <th>Min Qty</th>
+                            <th>Current Qty</th>
+                            <th>Remarks</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="equipmentList"></tbody>
+                </table>
+            </div>
+
+            <div class="inspection-section">
+                <button class="inspection-btn red" id="inspectionBtn" onclick="toggleInspectionMode()">
+                    <i class="fas fa-clipboard-check"></i> Inspection
+                </button>
+            </div>
+            <div class="save-section" id="saveSection" style="display: none;">
+                <button class="save-btn" onclick="saveAllData()"><i class="fas fa-save"></i> SAVE ALL CHANGES</button>
+            </div>
+            <div id="saveSuccessMessage" class="save-success" style="display: none;">
+                <i class="fas fa-check-circle"></i> Save Success!
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
+
+    <script>
+        // === FIXED: QR PARSE UNTUK STATION & CATEGORY ===
+        // === STATUS "OK" / "NOT RECORDED" ===
+        // === BUANG BAG ID ===
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBf9xdF0qmVYaNWFUuEys-P5a1yuTpLdVY",
+            authDomain: "project123-82272.firebaseapp.com",
+            projectId: "project123-82272",
+            storageBucket: "project123-82272.firebasestorage.app",
+            messagingSenderId: "97561643123",
+            appId: "1:97561643123:web:92596bb20645124f68c206",
+            measurementId: "G-D5P85TT95P"
+        };
+
+        // MAP KOD CATEGORY KE NAMA PENUH (SAMA DENGAN ADMIN-RESCUE)
+        const CATEGORY_MAP = {
+            'RO': 'Rope Bag',
+            'TO': 'Top Bag',
+            'BO': 'Bottom Bag',
+            'AU': 'Auxiliary',
+            'PP': 'PPE'
+        };
+
+        // MAP KOD STATION KE NAMA PENUH
+        const STATION_MAP = {
+            'MA': 'Main Station',
+            'ST': 'ST A',
+            'SA': 'ST A',
+            'SB': 'ST B'
+        };
+
+        // EQUIPMENT DATABASE UNTUK DEFAULT (SALINAN DARI ADMIN-RESCUE)
+        const EQUIPMENT_DATABASE = {
+            "Rope Bag": [
+                "Main Line 100m (11–13mm)",
+                "Belay/Safety Line 100m (11–13mm)",
+                "Tag Line 100m/200m (9–13mm)"
+            ],
+            "Top Bag": [
+                "Carabiner",
+                "Figure Of Eight",
+                "Webbing",
+                "Single Pulley",
+                "Double Pulley",
+                "Anchor Strap",
+                "Sling",
+                "Prusik",
+                "Rope Pad",
+                "Pickoff Strap"
+            ],
+            "Bottom Bag": [
+                "Carabiner",
+                "Figure Of Eight",
+                "Webbing",
+                "Single Pulley",
+                "Double Pulley",
+                "Anchor Strap",
+                "Sling",
+                "Prusik",
+                "Rope Pad",
+                "Webbing",
+                "Petzl ID"
+            ],
+            "Auxiliary": [
+                "Main Line 200m (11–13mm)",
+                "Tripod Stand (c/w MA system)",
+                "Stretcher"
+            ],
+            "PPE": [
+                "Rescue Harness",
+                "Rescue Helmet",
+                "Rescue Gloves"
+            ]
+        };
+
+        let db;
+        let currentStation = null;
+        let currentCategory = null;      // Nama penuh category (cth: "Top Bag")
+        let equipmentData = [];
+        let isEditMode = false;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeFirebase();
+            loadRescueDataFromURL();
+        });
+
+        function initializeFirebase() {
+            try {
+                if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+                db = firebase.firestore();
+                console.log("✅ Firebase initialized");
+            } catch (error) {
+                showError('Failed to initialize database.');
+            }
+        }
+
+        // ------------------------------------------------------------
+        // 1. PARSE QR JSON – dapatkan station & category
+        // ------------------------------------------------------------
+        function parseQRIdentifier(identifier) {
+            let station = null;
+            let category = null;
+            let rawStationCode = null;
+            let rawCategoryCode = null;
+
+            try {
+                const qrData = JSON.parse(identifier);
+                rawStationCode = qrData.s;
+                rawCategoryCode = qrData.c;
+
+                // Map station
+                if (rawStationCode) {
+                    station = STATION_MAP[rawStationCode] || rawStationCode;
+                }
+
+                // Map category
+                if (rawCategoryCode) {
+                    category = CATEGORY_MAP[rawCategoryCode] || null;
+                }
+
+                console.log("🔍 QR parsed:", { rawStationCode, rawCategoryCode, station, category });
+            } catch (e) {
+                // Bukan JSON – fallback parse teks biasa
+                console.log("Identifier bukan JSON, guna parsing manual");
+                let str = identifier.replace(/^Rope Bag\s*/i, '').trim(); // tapi mungkin bukan rope bag
+                // Kita cuba detect station dari string
+                if (str.toUpperCase().includes('MS') || str.includes('Main Station')) station = 'Main Station';
+                else if (str.toUpperCase().includes('ST A') || str.includes('Station A')) station = 'ST A';
+                else if (str.toUpperCase().includes('ST B') || str.includes('Station B')) station = 'ST B';
+                
+                // Untuk category, tak dapat dari teks biasa. Kita assume Rope Bag sebagai default? 
+                // Lebih baik user guna QR JSON, jadi kita tak handle.
+            }
+
+            return { station, category, rawIdentifier: identifier };
+        }
+
+        // ------------------------------------------------------------
+        // 2. LOAD DATA – set station, category, sembunyi Bag ID
+        // ------------------------------------------------------------
+        function loadRescueDataFromURL() {
+            const urlParams = new URLSearchParams(window.location.search);
+            let identifier = urlParams.get('ropebag');
+            if (!identifier) {
+                showError('No rope bag identifier provided.');
+                return;
+            }
+            identifier = decodeURIComponent(identifier);
+            console.log("🔍 Raw identifier:", identifier);
+
+            const parsed = parseQRIdentifier(identifier);
+            
+            if (!parsed.station) {
+                showError('Station tidak dikenalpasti dalam QR code.');
+                return;
+            }
+            if (!parsed.category) {
+                showError('Category tidak dikenalpasti dalam QR code.');
+                return;
+            }
+
+            currentStation = parsed.station;
+            currentCategory = parsed.category;
+            console.log("📍 Station:", currentStation);
+            console.log("📦 Category:", currentCategory);
+
+            showLoading(true);
+
+            // Papar info asas
+            document.getElementById('category').textContent = currentCategory;
+            document.getElementById('location').textContent = currentStation;
+            document.getElementById('categoryTitle').innerHTML = `<i class="fas fa-tools"></i> Equipment in ${currentCategory}`;
+
+            // BUANG BAG ID – sembunyikan baris
+            const bagIdRow = document.getElementById('bagIdRow');
+            if (bagIdRow) bagIdRow.style.display = 'none';
+
+            // Ambil equipment dari Firestore
+            fetchEquipmentForStationAndCategory();
+        }
+
+        // ------------------------------------------------------------
+        // 3. FETCH EQUIPMENT – guna station & category
+        // ------------------------------------------------------------
+        function fetchEquipmentForStationAndCategory() {
+            if (!db) { showError('Database not initialized.'); return; }
+            console.log("🔍 Fetching equipment untuk:", currentStation, currentCategory);
+
+            db.collection('rescueEquipment')
+                .where('station', '==', currentStation)
+                .where('category', '==', currentCategory)
+                .get()
+                .then((querySnapshot) => {
+                    showLoading(false);
+                    console.log("📊 Equipment ditemui:", querySnapshot.size);
+
+                    if (querySnapshot.empty) {
+                        createDefaultEquipment();
+                        return;
+                    }
+
+                    equipmentData = [];
+                    querySnapshot.forEach(doc => {
+                        const data = doc.data();
+                        data.id = doc.id;
+                        equipmentData.push(data);
+                    });
+
+                    populateEquipmentTable();
+                    document.getElementById('rescueInfoContent').style.display = 'block';
+                })
+                .catch((error) => {
+                    showLoading(false);
+                    showError(`Error fetching equipment: ${error.message}`);
+                    console.error(error);
+                });
+        }
+
+        // ------------------------------------------------------------
+        // 4. POPULATE TABLE – guna field 'equipment' & status "OK"/"NOT RECORDED"
+        // ------------------------------------------------------------
+        function populateEquipmentTable() {
+            const tbody = document.getElementById('equipmentList');
+            tbody.innerHTML = '';
+
+            equipmentData.forEach((item, index) => {
+                // Tentukan paparan status
+                let statusText = 'NOT RECORDED';
+                if (item.status === 'Checked') statusText = 'OK';
+
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${item.equipment || '-'}</td>
+                    <td class="min-qty">${item.minimumQuantity || '0'}</td>
+                    <td>
+                        <span class="current-qty-view">${item.currentQuantity || '0'}</span>
+                        <input type="number" class="current-qty-edit" value="${item.currentQuantity || '0'}" min="0" style="display: none;" data-index="${index}">
+                    </td>
+                    <td>
+                        <span class="remarks-view">${item.remarks || '-'}</span>
+                        <textarea class="remarks-edit" style="display: none;" data-index="${index}" placeholder="Enter remarks...">${item.remarks || ''}</textarea>
+                    </td>
+                    <td>
+                        <span class="status-view">${statusText}</span>
+                        <input type="checkbox" class="status-checkbox status-edit" ${item.status === 'Checked' ? 'checked' : ''} style="display: none;" data-index="${index}">
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        // ------------------------------------------------------------
+        // 5. DEFAULT EQUIPMENT – guna senarai mengikut category
+        // ------------------------------------------------------------
+        function createDefaultEquipment() {
+            const defaultList = EQUIPMENT_DATABASE[currentCategory];
+            if (!defaultList || defaultList.length === 0) {
+                console.warn("Tiada default equipment untuk category:", currentCategory);
+                // Jika tiada, buat row kosong atau papar mesej
+                equipmentData = [];
+                populateEquipmentTable();
+                document.getElementById('rescueInfoContent').style.display = 'block';
+                return;
+            }
+
+            const batch = db.batch();
+            defaultList.forEach(equipName => {
+                const docRef = db.collection('rescueEquipment').doc();
+                const uniqueKey = `${currentStation}|${currentCategory}|${equipName}`;
+                batch.set(docRef, {
+                    station: currentStation,
+                    category: currentCategory,
+                    equipment: equipName,
+                    minimumQuantity: 1,
+                    currentQuantity: 0,
+                    remarks: '',
+                    status: 'Not Checked',
+                    uniqueKey: uniqueKey,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                });
+            });
+
+            batch.commit()
+                .then(() => {
+                    console.log(`✅ Default equipment created for ${currentStation} - ${currentCategory}`);
+                    fetchEquipmentForStationAndCategory();
+                })
+                .catch(error => {
+                    console.error(error);
+                    showError('Failed to create default equipment.');
+                });
+        }
+
+        // ------------------------------------------------------------
+        // 6. TOGGLE INSPECTION MODE (tiada perubahan)
+        // ------------------------------------------------------------
+        function toggleInspectionMode() {
+            isEditMode = !isEditMode;
+            const inspectionBtn = document.getElementById('inspectionBtn');
+            const saveSection = document.getElementById('saveSection');
+            const viewElements = document.querySelectorAll('.current-qty-view, .remarks-view, .status-view');
+            const editElements = document.querySelectorAll('.current-qty-edit, .remarks-edit, .status-edit');
+
+            if (isEditMode) {
+                inspectionBtn.style.display = 'none';
+                viewElements.forEach(el => el.style.display = 'none');
+                editElements.forEach(el => el.style.display = 'block');
+                saveSection.style.display = 'block';
+            } else {
+                inspectionBtn.style.display = 'block';
+                inspectionBtn.classList.remove('green');
+                inspectionBtn.classList.add('red');
+                inspectionBtn.innerHTML = '<i class="fas fa-clipboard-check"></i> Inspection';
+                viewElements.forEach(el => el.style.display = 'block');
+                editElements.forEach(el => el.style.display = 'none');
+                saveSection.style.display = 'none';
+            }
+        }
+
+        // ------------------------------------------------------------
+        // 7. SAVE ALL DATA – update Firestore, simpan status "Checked"/"Not Checked"
+        // ------------------------------------------------------------
+        async function saveAllData() {
+            if (!db || equipmentData.length === 0) {
+                alert('Database not initialized or no equipment data.');
+                return;
+            }
+
+            const saveBtn = document.querySelector('.save-btn');
+            const originalText = saveBtn.innerHTML;
+            saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+            saveBtn.disabled = true;
+
+            try {
+                for (let i = 0; i < equipmentData.length; i++) {
+                    const item = equipmentData[i];
+                    const currentQtyInput = document.querySelector(`.current-qty-edit[data-index="${i}"]`);
+                    const remarksInput = document.querySelector(`.remarks-edit[data-index="${i}"]`);
+                    const statusInput = document.querySelector(`.status-edit[data-index="${i}"]`);
+
+                    const updatedData = {
+                        currentQuantity: parseInt(currentQtyInput.value) || 0,
+                        remarks: remarksInput.value || '',
+                        status: statusInput.checked ? 'Checked' : 'Not Checked',
+                        lastInspection: firebase.firestore.FieldValue.serverTimestamp(),
+                        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                    };
+
+                    await db.collection('rescueEquipment').doc(item.id).update(updatedData);
+                    equipmentData[i] = { ...item, ...updatedData };
+                }
+
+                console.log('✅ All data saved');
+                updateViewModeData();
+                showSaveSuccess();
+                setTimeout(() => toggleInspectionMode(), 2000);
+            } catch (error) {
+                console.error(error);
+                alert('Save failed: ' + error.message);
+            } finally {
+                saveBtn.innerHTML = originalText;
+                saveBtn.disabled = false;
+            }
+        }
+
+        function updateViewModeData() {
+            const rows = document.querySelectorAll('#equipmentList tr');
+            rows.forEach((row, index) => {
+                const item = equipmentData[index];
+                if (item) {
+                    row.querySelector('.current-qty-view').textContent = item.currentQuantity || '0';
+                    row.querySelector('.remarks-view').textContent = item.remarks || '-';
+                    const statusText = item.status === 'Checked' ? 'OK' : 'NOT RECORDED';
+                    row.querySelector('.status-view').textContent = statusText;
+                    row.querySelector('.current-qty-edit').value = item.currentQuantity || '0';
+                    row.querySelector('.remarks-edit').value = item.remarks || '';
+                    row.querySelector('.status-edit').checked = item.status === 'Checked';
+                }
+            });
+        }
+
+        // ------------------------------------------------------------
+        // UTILITY FUNCTIONS
+        // ------------------------------------------------------------
+        function showSaveSuccess() {
+            const successMessage = document.getElementById('saveSuccessMessage');
+            successMessage.style.display = 'flex';
+            setTimeout(() => { successMessage.style.display = 'none'; }, 3000);
+        }
+
+        function showLoading(show) {
+            document.getElementById('loadingMessage').style.display = show ? 'block' : 'none';
+            document.getElementById('errorMessage').style.display = 'none';
+            if (!show) document.getElementById('rescueInfoContent').style.display = 'none';
+        }
+
+        function showError(message) {
+            document.getElementById('loadingMessage').style.display = 'none';
+            document.getElementById('errorMessage').style.display = 'block';
+            document.getElementById('errorText').textContent = message;
+        }
+
+        function retryLoading() {
+            loadRescueDataFromURL();
+        }
+
+        function closePopup() {
+            if (isEditMode && confirm('You have unsaved changes. Close without saving?')) return;
+            window.location.href = 'public-inspection.html';
+        }
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') closePopup();
+        });
+    </script>
+</body>
+</html>
