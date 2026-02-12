@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rescue Equipment - Admin Panel</title>
+    <title>Rescue Equipment</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- QR Code Library -->
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
@@ -241,18 +241,6 @@
             color: var(--dark-text);
             margin: 0;
             font-size: 20px;
-        }
-
-        .station-icon {
-            width: 50px;
-            height: 50px;
-            background: linear-gradient(135deg, var(--primary-color), #c9302c);
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 24px;
         }
 
         /* Scrollable Categories Container */
@@ -1023,8 +1011,8 @@
                         <select id="station" name="station" required onchange="onStationChange()">
                             <option value="">Select Station</option>
                             <option value="Main Station">Main Station</option>
-                            <option value="ST A">ST A</option>
-                            <option value="ST B">ST B</option>
+                            <option value="Station A">Station A</option>
+                            <option value="Station B">Station B</option>
                         </select>
                     </div>
 
@@ -1226,8 +1214,8 @@
         let currentQRIdentifier = '';
         let stationInventory = {
             "Main Station": { equipmentCount: 0, items: [] },
-            "ST A": { equipmentCount: 0, items: [] },
-            "ST B": { equipmentCount: 0, items: [] }
+            "Station A": { equipmentCount: 0, items: [] },
+            "Station B": { equipmentCount: 0, items: [] }
         };
 
         // Equipment database
@@ -1253,13 +1241,14 @@
                 "Carabiner",
                 "Figure Of Eight",
                 "Webbing",
+                "Gibs",
                 "Single Pulley",
                 "Double Pulley",
+                "Anchor Plate",
                 "Anchor Strap",
                 "Sling",
                 "Prusik",
                 "Rope Pad",
-                "Webbing",
                 "Petzl ID"
             ],
             "Auxiliary": [
@@ -1456,7 +1445,7 @@
             }
         }
 
-        // LOAD INVENTORY DATA (SIMPLE VERSION)
+        // LOAD INVENTORY DATA (WITH MAPPING FOR OLD STATION NAMES)
         function loadInventoryData() {
             const loadingMessage = document.getElementById('loadingMessage');
             const noDataMessage = document.getElementById('noDataMessage');
@@ -1476,8 +1465,8 @@
             // Reset data
             stationInventory = {
                 "Main Station": { equipmentCount: 0, items: [] },
-                "ST A": { equipmentCount: 0, items: [] },
-                "ST B": { equipmentCount: 0, items: [] }
+                "Station A": { equipmentCount: 0, items: [] },
+                "Station B": { equipmentCount: 0, items: [] }
             };
             
             // Simple query - no complex ordering
@@ -1501,7 +1490,13 @@
                             
                             // Get station or default to Main Station
                             let station = data.station || "Main Station";
-                            if (!["Main Station", "ST A", "ST B"].includes(station)) {
+                            
+                            // 🟢 MAP OLD STATION NAMES TO NEW ONES 🟢
+                            if (station === "ST A") station = "Station A";
+                            if (station === "ST B") station = "Station B";
+                            
+                            // Ensure station is one of the valid ones, otherwise fallback to Main Station
+                            if (!["Main Station", "Station A", "Station B"].includes(station)) {
                                 station = "Main Station";
                             }
                             
@@ -1604,13 +1599,10 @@
             if (noDataMessage) noDataMessage.style.display = 'none';
             
             let cardsHtml = '';
-            const stations = ['Main Station', 'ST A', 'ST B'];
+            const stations = ['Main Station', 'Station A', 'Station B'];
             
             stations.forEach(station => {
                 const inventory = stationInventory[station];
-                const icon = station === 'Main Station' ? 'fas fa-home' : 
-                             station === 'ST A' ? 'fas fa-fire-extinguisher' : 
-                             'fas fa-tools';
                 
                 // Get categories for this station
                 const categories = {};
@@ -1628,9 +1620,6 @@
                     <div class="station-card">
                         <div class="station-card-header">
                             <h3>${station}</h3>
-                            <div class="station-icon">
-                                <i class="${icon}"></i>
-                            </div>
                         </div>
                         
                         <div class="categories-container">
