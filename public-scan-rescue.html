@@ -91,9 +91,200 @@
             margin-top: 15px; text-align: center; font-weight: bold;
             display: flex; align-items: center; justify-content: center; gap: 8px;
         }
+
+        /* ---------- INSPECTION DETAILS MODAL (RESCUE) ---------- */
+        .inspection-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            backdrop-filter: blur(3px);
+        }
+        .inspection-modal-content {
+            background: white;
+            width: 90%;
+            max-width: 550px;
+            border-radius: 12px;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.2);
+            animation: modalFadeIn 0.3s;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        @keyframes modalFadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .inspection-modal-header {
+            background: #2c3e50;
+            color: white;
+            padding: 18px 20px;
+            border-radius: 12px 12px 0 0;
+        }
+        .inspection-modal-header h2 {
+            margin: 0;
+            font-size: 1.4rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .inspection-modal-header p {
+            margin: 8px 0 0;
+            opacity: 0.9;
+            font-size: 0.95rem;
+        }
+        .info-header-container {
+            padding: 20px 20px 0;
+        }
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+        .info-item {
+            display: flex;
+            flex-direction: column;
+        }
+        .info-label {
+            font-weight: 600;
+            color: #2c3e50;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .info-value {
+            font-size: 1.1rem;
+            font-weight: 500;
+            margin-top: 4px;
+            color: #2c3e50;
+            background: transparent;
+            padding: 0;
+            border: none;
+        }
+        .form-group {
+            padding: 0 20px 20px;
+        }
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 6px;
+            font-size: 0.9rem;
+        }
+        .modal-input, .modal-select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border 0.2s;
+            box-sizing: border-box;
+            background: white;
+        }
+        .modal-input:focus, .modal-select:focus {
+            border-color: #3498db;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(52,152,219,0.1);
+        }
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            padding: 20px;
+            border-top: 1px solid #eee;
+        }
+        .modal-btn {
+            padding: 10px 24px;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .modal-btn-primary {
+            background: #28a745;
+            color: white;
+        }
+        .modal-btn-primary:hover {
+            background: #218838;
+        }
+        .modal-btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        .modal-btn-secondary:hover {
+            background: #5a6268;
+        }
+        .required-star {
+            color: #dc3545;
+        }
     </style>
 </head>
 <body>
+
+    <!-- ========== INSPECTION DETAILS MODAL (RESCUE) ========== -->
+    <div id="inspectionDetailsModalRescue" class="inspection-modal-overlay" style="display: none;">
+        <div class="inspection-modal-content">
+            <div class="inspection-modal-header">
+                <h2><i class="fas fa-clipboard-check"></i> Inspection Details</h2>
+                <p>Please fill in all required fields before starting inspection</p>
+            </div>
+            
+            <div class="info-header-container">
+                <div class="info-grid">
+                    <div class="info-item">
+                        <div class="info-label">DAY</div>
+                        <div class="info-value" id="modalRescueDay">-</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">DATE</div>
+                        <div class="info-value" id="modalRescueDate">-</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">CURRENT TIME</div>
+                        <div class="info-value" id="modalRescueTime">-</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">STATION</div>
+                        <div class="info-value" id="modalRescueStation">-</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label>Inspector Name <span class="required-star">*</span></label>
+                <input type="text" id="modalRescueInspector" class="modal-input" autocomplete="off">
+            </div>
+
+            <div class="form-group">
+                <label>Shift <span class="required-star">*</span></label>
+                <select id="modalRescueShift" class="modal-select">
+                    <option value="" disabled selected>-- Select Shift --</option>
+                    <option value="A">Shift A</option>
+                    <option value="B">Shift B</option>
+                    <option value="C">Shift C</option>
+                    <option value="D">Shift D</option>
+                </select>
+            </div>
+            
+            <div class="modal-footer">
+                <button class="modal-btn modal-btn-secondary" onclick="cancelInspectionDetails()">Cancel</button>
+                <button class="modal-btn modal-btn-primary" onclick="saveInspectionDetailsRescue()">Continue to Inspect</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main popup content -->
     <div class="info-popup">
         <div class="popup-header">
             <h1><i class="fas fa-life-ring"></i> Rescue Equipment Inspection</h1>
@@ -246,6 +437,14 @@
         let equipmentData = [];
         let isEditMode = false;
 
+        // ---------- INSPECTION DETAILS STATE ----------
+        let inspectionDetailsRescue = {
+            inspectorName: '',
+            shift: '',
+            submitted: false
+        };
+        // ------------------------------------------------
+
         document.addEventListener('DOMContentLoaded', function() {
             initializeFirebase();
             loadRescueDataFromURL();
@@ -289,14 +488,10 @@
             } catch (e) {
                 // Bukan JSON – fallback parse teks biasa
                 console.log("Identifier bukan JSON, guna parsing manual");
-                let str = identifier.replace(/^Rope Bag\s*/i, '').trim(); // tapi mungkin bukan rope bag
-                // Kita cuba detect station dari string
+                let str = identifier.replace(/^Rope Bag\s*/i, '').trim();
                 if (str.toUpperCase().includes('MS') || str.includes('Main Station')) station = 'Main Station';
                 else if (str.toUpperCase().includes('ST A') || str.includes('Station A')) station = 'ST A';
                 else if (str.toUpperCase().includes('ST B') || str.includes('Station B')) station = 'ST B';
-                
-                // Untuk category, tak dapat dari teks biasa. Kita assume Rope Bag sebagai default? 
-                // Lebih baik user guna QR JSON, jadi kita tak handle.
             }
 
             return { station, category, rawIdentifier: identifier };
@@ -333,16 +528,13 @@
 
             showLoading(true);
 
-            // Papar info asas
             document.getElementById('category').textContent = currentCategory;
             document.getElementById('location').textContent = currentStation;
             document.getElementById('categoryTitle').innerHTML = `<i class="fas fa-tools"></i> Equipment in ${currentCategory}`;
 
-            // BUANG BAG ID – sembunyikan baris
             const bagIdRow = document.getElementById('bagIdRow');
             if (bagIdRow) bagIdRow.style.display = 'none';
 
-            // Ambil equipment dari Firestore
             fetchEquipmentForStationAndCategory();
         }
 
@@ -374,7 +566,9 @@
                     });
 
                     populateEquipmentTable();
-                    document.getElementById('rescueInfoContent').style.display = 'block';
+                    
+                    // Show inspection details modal
+                    showInspectionDetailsModal();
                 })
                 .catch((error) => {
                     showLoading(false);
@@ -384,14 +578,13 @@
         }
 
         // ------------------------------------------------------------
-        // 4. POPULATE TABLE – guna field 'equipment' & status "OK"/"NOT RECORDED"
+        // 4. POPULATE TABLE
         // ------------------------------------------------------------
         function populateEquipmentTable() {
             const tbody = document.getElementById('equipmentList');
             tbody.innerHTML = '';
 
             equipmentData.forEach((item, index) => {
-                // Tentukan paparan status
                 let statusText = 'NOT RECORDED';
                 if (item.status === 'Checked') statusText = 'OK';
 
@@ -417,16 +610,15 @@
         }
 
         // ------------------------------------------------------------
-        // 5. DEFAULT EQUIPMENT – guna senarai mengikut category
+        // 5. DEFAULT EQUIPMENT
         // ------------------------------------------------------------
         function createDefaultEquipment() {
             const defaultList = EQUIPMENT_DATABASE[currentCategory];
             if (!defaultList || defaultList.length === 0) {
                 console.warn("Tiada default equipment untuk category:", currentCategory);
-                // Jika tiada, buat row kosong atau papar mesej
                 equipmentData = [];
                 populateEquipmentTable();
-                document.getElementById('rescueInfoContent').style.display = 'block';
+                showInspectionDetailsModal();
                 return;
             }
 
@@ -459,7 +651,84 @@
         }
 
         // ------------------------------------------------------------
-        // 6. TOGGLE INSPECTION MODE (tiada perubahan)
+        // NEW: INSPECTION DETAILS MODAL FUNCTIONS
+        // ------------------------------------------------------------
+        function showInspectionDetailsModal() {
+            // If already submitted, directly show content
+            if (inspectionDetailsRescue.submitted) {
+                document.getElementById('rescueInfoContent').style.display = 'block';
+                return;
+            }
+
+            // Populate date, day, time, station
+            const now = new Date();
+            const day = now.toLocaleDateString('en-US', { weekday: 'long' });
+            const date = now.toLocaleDateString('en-US', { 
+                day: 'numeric', 
+                month: 'short', 
+                year: 'numeric' 
+            }).toUpperCase();
+            const time = now.toLocaleTimeString('en-US', { 
+                hour: '2-digit', 
+                minute: '2-digit',
+                hour12: false 
+            });
+
+            document.getElementById('modalRescueDay').textContent = day;
+            document.getElementById('modalRescueDate').textContent = date;
+            document.getElementById('modalRescueTime').textContent = time;
+            document.getElementById('modalRescueStation').textContent = currentStation || '-';
+
+            // Clear fields
+            document.getElementById('modalRescueInspector').value = '';
+            document.getElementById('modalRescueShift').value = '';
+
+            // Show modal
+            document.getElementById('inspectionDetailsModalRescue').style.display = 'flex';
+        }
+
+        function closeInspectionDetailsModal() {
+            document.getElementById('inspectionDetailsModalRescue').style.display = 'none';
+        }
+
+        function cancelInspectionDetails() {
+            closeInspectionDetailsModal();
+            closePopup(); // redirect back to public-inspection.html
+        }
+
+        function saveInspectionDetailsRescue() {
+            // Get values
+            const inspector = document.getElementById('modalRescueInspector').value.trim();
+            const shift = document.getElementById('modalRescueShift').value;
+
+            // Validation - all fields required
+            if (!inspector) {
+                alert('Please enter Inspector Name');
+                return;
+            }
+            if (!shift) {
+                alert('Please select Shift');
+                return;
+            }
+
+            // Store details
+            inspectionDetailsRescue = {
+                inspectorName: inspector,
+                shift: shift,
+                submitted: true
+            };
+
+            // Hide modal
+            closeInspectionDetailsModal();
+
+            // Show the main inspection content
+            document.getElementById('rescueInfoContent').style.display = 'block';
+
+            console.log(`✅ Inspection details saved.`, inspectionDetailsRescue);
+        }
+
+        // ------------------------------------------------------------
+        // 6. TOGGLE INSPECTION MODE (unchanged)
         // ------------------------------------------------------------
         function toggleInspectionMode() {
             isEditMode = !isEditMode;
@@ -485,7 +754,7 @@
         }
 
         // ------------------------------------------------------------
-        // 7. SAVE ALL DATA – update Firestore, simpan status "Checked"/"Not Checked"
+        // 7. SAVE ALL DATA (unchanged)
         // ------------------------------------------------------------
         async function saveAllData() {
             if (!db || equipmentData.length === 0) {
@@ -547,7 +816,7 @@
         }
 
         // ------------------------------------------------------------
-        // UTILITY FUNCTIONS
+        // UTILITY FUNCTIONS (unchanged)
         // ------------------------------------------------------------
         function showSaveSuccess() {
             const successMessage = document.getElementById('saveSuccessMessage');
