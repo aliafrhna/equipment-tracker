@@ -1736,7 +1736,7 @@
             document.getElementById('categoryModal').style.display = 'flex';
         }
 
-        // GENERATE QR CODE (ULTRA SIMPLE)
+        // ========== 🟢 FIXED: GENERATE CATEGORY QR WITH UNIQUE STATION CODES ==========
         function generateCategoryQR(stationName, categoryName) {
             const items = stationInventory[stationName]?.items.filter(item => 
                 item.category === categoryName
@@ -1747,10 +1747,17 @@
                 return;
             }
             
+            // Map station name to unambiguous code
+            let stationCode;
+            if (stationName === 'Station A') stationCode = 'SA';
+            else if (stationName === 'Station B') stationCode = 'SB';
+            else if (stationName === 'Main Station') stationCode = 'MA';
+            else stationCode = stationName.substring(0, 2).toUpperCase(); // fallback
+            
             // Create minimal QR data
             const qrData = {
                 t: "rescue",
-                s: stationName.substring(0, 2).toUpperCase(),
+                s: stationCode,
                 c: categoryName.substring(0, 2).toUpperCase(),
                 n: items.length,
                 ts: Date.now()
@@ -1763,6 +1770,7 @@
             showQRPopup(qrDataString, stationName, categoryName, items);
         }
 
+        // ========== 🟢 FIXED: GENERATE SINGLE EQUIPMENT QR WITH UNIQUE STATION CODES ==========
         function generateSingleEquipmentQR(equipmentId) {
             // Find the equipment
             let equipment = null;
@@ -1779,6 +1787,13 @@
                 return;
             }
             
+            // Map station name to unambiguous code
+            let stationCode;
+            if (equipment.station === 'Station A') stationCode = 'SA';
+            else if (equipment.station === 'Station B') stationCode = 'SB';
+            else if (equipment.station === 'Main Station') stationCode = 'MA';
+            else stationCode = equipment.station.substring(0, 2).toUpperCase();
+            
             // Minimal QR data
             const qrData = {
                 t: "equip",
@@ -1786,7 +1801,7 @@
                 n: equipment.equipment.substring(0, 15),
                 c: equipment.currentQuantity,
                 m: equipment.minimumQuantity,
-                s: equipment.station.substring(0, 2),
+                s: stationCode,
                 ts: Date.now()
             };
             
