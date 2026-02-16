@@ -11,6 +11,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
     <style>
+        /* ========== EXACT STYLES (unchanged) ========== */
         :root {
             --primary-color: #c9302c;
             --secondary-color: #6a7c92;
@@ -1195,7 +1196,7 @@
             }
         }
 
-        // Firebase configuration - DOUBLE CHECK THIS MATCHES YOUR PROJECT
+        // Firebase configuration
         const firebaseConfig = {
             apiKey: "AIzaSyBf9xdF0qmVYaNWFUuEys-P5a1yuTpLdVY",
             authDomain: "project123-82272.firebaseapp.com",
@@ -1276,12 +1277,10 @@
             console.log("🔥 Initializing Firebase...");
             
             try {
-                // Check if Firebase is loaded
                 if (typeof firebase === 'undefined') {
                     throw new Error("Firebase SDK not loaded. Check internet connection.");
                 }
                 
-                // Initialize Firebase
                 if (!firebase.apps.length) {
                     app = firebase.initializeApp(firebaseConfig);
                     console.log("✅ Firebase app initialized");
@@ -1290,11 +1289,9 @@
                     console.log("✅ Using existing Firebase app");
                 }
                 
-                // Get Firestore instance
                 db = firebase.firestore();
                 console.log("✅ Firestore instance obtained");
                 
-                // Load data
                 loadInventoryData();
                 
             } catch (error) {
@@ -1320,7 +1317,6 @@
             const equipmentGroup = document.getElementById('equipmentGroup');
             const quantityFields = document.getElementById('quantityFields');
             
-            // Reset
             document.getElementById('category').value = '';
             document.getElementById('equipment').innerHTML = '<option value="">Select Equipment</option>';
             document.getElementById('minimumQuantity').value = '';
@@ -1342,7 +1338,6 @@
             const equipmentGroup = document.getElementById('equipmentGroup');
             const quantityFields = document.getElementById('quantityFields');
             
-            // Reset
             equipmentSelect.innerHTML = '<option value="">Select Equipment</option>';
             document.getElementById('minimumQuantity').value = '';
             document.getElementById('currentQuantity').value = '';
@@ -1395,7 +1390,6 @@
                 return;
             }
 
-            // Create unique ID
             const uniqueId = `${station}|${category}|${equipment}|${Date.now()}`.replace(/[\/\s]/g, '_').replace(/[^\w\-]/g, '');
             
             const equipmentData = {
@@ -1407,15 +1401,14 @@
                 remarks: remarks || '',
                 lastUpdated: firebase.firestore.FieldValue.serverTimestamp(),
                 uniqueKey: `${station}|${category}|${equipment}`
+                // Note: inspectionDate tidak disertakan – ini adalah master document
             };
 
             try {
                 if (editingId) {
-                    // Update existing
                     await db.collection('rescueEquipment').doc(editingId).update(equipmentData);
                     alert("Equipment updated successfully!");
                 } else {
-                    // Check for duplicate
                     const duplicateQuery = await db.collection('rescueEquipment')
                         .where('uniqueKey', '==', `${station}|${category}|${equipment}`)
                         .limit(1)
@@ -1430,7 +1423,6 @@
                             return;
                         }
                     } else {
-                        // Add new
                         await db.collection('rescueEquipment').doc(uniqueId).set(equipmentData);
                         alert("Equipment added successfully!");
                     }
@@ -1445,7 +1437,7 @@
             }
         }
 
-        // LOAD INVENTORY DATA (WITH MAPPING FOR OLD STATION NAMES)
+        // ==================== 🛑 FIXED: Hanya dokumen master (tanpa inspectionDate) dimasukkan ====================
         function loadInventoryData() {
             const loadingMessage = document.getElementById('loadingMessage');
             const noDataMessage = document.getElementById('noDataMessage');
@@ -1458,18 +1450,15 @@
             
             console.log("📡 Loading inventory data...");
             
-            // Show loading
             if (loadingMessage) loadingMessage.style.display = 'block';
             if (noDataMessage) noDataMessage.style.display = 'none';
             
-            // Reset data
             stationInventory = {
                 "Main Station": { equipmentCount: 0, items: [] },
                 "Station A": { equipmentCount: 0, items: [] },
                 "Station B": { equipmentCount: 0, items: [] }
             };
             
-            // Simple query - no complex ordering
             db.collection("rescueEquipment").get()
                 .then((querySnapshot) => {
                     console.log("✅ Data loaded:", querySnapshot.size, "documents");
@@ -1482,25 +1471,25 @@
                         return;
                     }
                     
-                    // Process each document
                     querySnapshot.forEach((doc) => {
                         try {
                             const data = doc.data();
                             const id = doc.id;
                             
-                            // Get station or default to Main Station
+                            // 🛑 SKIP dokumen yang mempunyai inspectionDate (dokumen harian)
+                            if (data.hasOwnProperty('inspectionDate') && data.inspectionDate !== null) {
+                                return; // langkau
+                            }
+                            
                             let station = data.station || "Main Station";
                             
-                            // 🟢 MAP OLD STATION NAMES TO NEW ONES 🟢
                             if (station === "ST A") station = "Station A";
                             if (station === "ST B") station = "Station B";
                             
-                            // Ensure station is one of the valid ones, otherwise fallback to Main Station
                             if (!["Main Station", "Station A", "Station B"].includes(station)) {
                                 station = "Main Station";
                             }
                             
-                            // Add to inventory
                             const item = {
                                 id: id,
                                 station: station,
@@ -1520,7 +1509,6 @@
                         }
                     });
                     
-                    // Display the data
                     displayStationCards();
                     
                 })
@@ -1595,7 +1583,6 @@
             
             if (!cardsContainer) return;
             
-            // Hide no data message
             if (noDataMessage) noDataMessage.style.display = 'none';
             
             let cardsHtml = '';
@@ -1604,7 +1591,6 @@
             stations.forEach(station => {
                 const inventory = stationInventory[station];
                 
-                // Get categories for this station
                 const categories = {};
                 inventory.items.forEach(item => {
                     const cat = item.category || 'Uncategorized';
@@ -1666,15 +1652,12 @@
 
         // VIEW CATEGORY INVENTORY
         function viewCategoryInventory(stationName, categoryName) {
-            // Get items for this category
             const items = stationInventory[stationName]?.items.filter(item => 
                 item.category === categoryName
             ) || [];
             
-            // Set modal title
             document.getElementById('modalCategoryTitle').textContent = `${stationName} - ${categoryName}`;
             
-            // Build table
             let tableHtml = '';
             
             if (items.length === 0) {
@@ -1717,7 +1700,6 @@
             
             document.getElementById('modalCategoryBody').innerHTML = tableHtml;
             
-            // Set actions
             document.getElementById('modalCategoryActions').innerHTML = `
                 <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
                     <button class="btn btn-primary" onclick="addEquipmentForCategory('${stationName}', '${categoryName}'); closeCategoryModal();">
@@ -1732,11 +1714,10 @@
                 </div>
             `;
             
-            // Show modal
             document.getElementById('categoryModal').style.display = 'flex';
         }
 
-        // ========== 🟢 FIXED: GENERATE CATEGORY QR WITH UNIQUE STATION CODES ==========
+        // ========== GENERATE CATEGORY QR ==========
         function generateCategoryQR(stationName, categoryName) {
             const items = stationInventory[stationName]?.items.filter(item => 
                 item.category === categoryName
@@ -1747,14 +1728,12 @@
                 return;
             }
             
-            // Map station name to unambiguous code
             let stationCode;
             if (stationName === 'Station A') stationCode = 'SA';
             else if (stationName === 'Station B') stationCode = 'SB';
             else if (stationName === 'Main Station') stationCode = 'MA';
-            else stationCode = stationName.substring(0, 2).toUpperCase(); // fallback
+            else stationCode = stationName.substring(0, 2).toUpperCase();
             
-            // Create minimal QR data
             const qrData = {
                 t: "rescue",
                 s: stationCode,
@@ -1766,13 +1745,11 @@
             const qrDataString = JSON.stringify(qrData);
             console.log("QR Data length:", qrDataString.length);
             
-            // Show QR popup
             showQRPopup(qrDataString, stationName, categoryName, items);
         }
 
-        // ========== 🟢 FIXED: GENERATE SINGLE EQUIPMENT QR WITH UNIQUE STATION CODES ==========
+        // ========== GENERATE SINGLE EQUIPMENT QR ==========
         function generateSingleEquipmentQR(equipmentId) {
-            // Find the equipment
             let equipment = null;
             for (const station in stationInventory) {
                 const found = stationInventory[station].items.find(item => item.id === equipmentId);
@@ -1787,14 +1764,12 @@
                 return;
             }
             
-            // Map station name to unambiguous code
             let stationCode;
             if (equipment.station === 'Station A') stationCode = 'SA';
             else if (equipment.station === 'Station B') stationCode = 'SB';
             else if (equipment.station === 'Main Station') stationCode = 'MA';
             else stationCode = equipment.station.substring(0, 2).toUpperCase();
             
-            // Minimal QR data
             const qrData = {
                 t: "equip",
                 id: equipmentId.substring(0, 8),
@@ -1825,7 +1800,6 @@
                         throw new Error("QRCode library not loaded");
                     }
                     
-                    // Generate QR
                     new QRCode(qrContainer, {
                         text: qrDataString,
                         width: 280,
@@ -1843,7 +1817,6 @@
                             document.getElementById('qrCodePlaceholder').style.display = 'none';
                             document.getElementById('qrCodeWrapper').style.display = 'block';
                             
-                            // Show preview
                             const previewHtml = `
                                 <h4>${categoryName}</h4>
                                 <p><strong>Station:</strong> ${stationName}</p>
@@ -1897,7 +1870,6 @@
                             document.getElementById('qrCodePlaceholder').style.display = 'none';
                             document.getElementById('qrCodeWrapper').style.display = 'block';
                             
-                            // Show preview
                             const previewHtml = `
                                 <h4>${equipment.equipment}</h4>
                                 <p><strong>Station:</strong> ${equipment.station}</p>
@@ -1933,14 +1905,11 @@
                 canvas.width = 400;
                 canvas.height = 450;
                 
-                // White background
                 ctx.fillStyle = '#FFFFFF';
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
                 
-                // Draw QR
                 ctx.drawImage(currentQRCodeElement, 60, 20, 280, 280);
                 
-                // Draw text
                 ctx.fillStyle = '#000000';
                 ctx.font = '14px Arial';
                 ctx.textAlign = 'center';
@@ -1948,7 +1917,6 @@
                 ctx.font = '10px Arial';
                 ctx.fillText(new Date().toLocaleDateString(), 200, 340);
                 
-                // Download
                 const link = document.createElement('a');
                 link.download = `qr_${currentQRIdentifier}.png`;
                 link.href = canvas.toDataURL('image/png');
@@ -1978,7 +1946,6 @@
                         document.getElementById('currentQuantity').value = data.currentQuantity || '';
                         document.getElementById('remarks').value = data.remarks || '';
                         
-                        // Show form sections
                         onStationChange();
                         setTimeout(() => {
                             onCategoryChange();
@@ -2075,7 +2042,6 @@
             alert(`${title}: ${message}`);
         }
 
-        // Close modal when clicking outside
         document.getElementById('categoryModal').addEventListener('click', function(e) {
             if (e.target === this) closeCategoryModal();
         });
@@ -2084,7 +2050,6 @@
             if (e.target === this) closeQRPopup();
         });
 
-        // Debug function
         window.debugData = function() {
             console.log("Station Inventory:", stationInventory);
             console.log("Firebase App:", app);
