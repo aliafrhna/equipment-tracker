@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rescue Equipment</title>
+    <title>Rescue Equipment Inspection</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="scanner.css">
     <style>
-        /* BACKGROUND IMAGE */
+        /* ========== EXACT STYLES (unchanged) ========== */
         body {
             background-image: url('images/rescue.jpg');
             background-size: cover;
@@ -356,10 +356,7 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
 
     <script>
-        // === FIXED: QR PARSE UNTUK STATION & CATEGORY ===
-        // === STATUS "OK" / "NOT RECORDED" ===
-        // === BUANG BAG ID ===
-
+        // ==================== FIREBASE CONFIG ====================
         const firebaseConfig = {
             apiKey: "AIzaSyBf9xdF0qmVYaNWFUuEys-P5a1yuTpLdVY",
             authDomain: "project123-82272.firebaseapp.com",
@@ -370,7 +367,7 @@
             measurementId: "G-D5P85TT95P"
         };
 
-        // MAP KOD CATEGORY KE NAMA PENUH (SAMA DENGAN ADMIN-RESCUE)
+        // ==================== CATEGORY MAP ====================
         const CATEGORY_MAP = {
             'RO': 'Rope Bag',
             'TO': 'Top Bag',
@@ -379,15 +376,37 @@
             'PP': 'PPE'
         };
 
-        // MAP KOD STATION KE NAMA PENUH
+        // ==================== STATION MAP (QR → new name) ====================
         const STATION_MAP = {
             'MA': 'Main Station',
-            'ST': 'ST A',
-            'SA': 'ST A',
-            'SB': 'ST B'
+            'ST': 'ST_AMBIGUOUS',   // 🟢 AMBIGUOUS – both Station A and Station B use 'ST'
+            'SA': 'Station A',       // new code for Station A
+            'SB': 'Station B'        // new code for Station B
         };
 
-        // EQUIPMENT DATABASE UNTUK DEFAULT (SALINAN DARI ADMIN-RESCUE)
+        // ==================== OLD NAMES (Firestore) ====================
+        const STATION_OLD_MAP = {
+            'Station A': 'ST A',
+            'Station B': 'ST B'
+        };
+
+        // ==================== CANONICAL NAMES ====================
+        const STATION_CANONICAL = {
+            'Main Station': 'Main Station',
+            'Station A': 'Station A',
+            'Station B': 'Station B',
+            'ST A': 'Station A',
+            'ST B': 'Station B'
+        };
+
+        // ==================== ALL POSSIBLE STATION NAMES FOR QUERY ====================
+        const ALL_STATION_VARIANTS = {
+            'Main Station': ['Main Station'],
+            'Station A': ['Station A', 'ST A'],
+            'Station B': ['Station B', 'ST B']
+        };
+
+        // ==================== EQUIPMENT DATABASE (DEFAULT) - TIDAK DIGUNAKAN LAGI UNTUK MASTER ====================
         const EQUIPMENT_DATABASE = {
             "Rope Bag": [
                 "Main Line 100m (11–13mm)",
@@ -433,7 +452,7 @@
 
         let db;
         let currentStation = null;
-        let currentCategory = null;      // Nama penuh category (cth: "Top Bag")
+        let currentCategory = null;
         let equipmentData = [];
         let isEditMode = false;
 
@@ -443,8 +462,20 @@
             shift: '',
             submitted: false
         };
-        // ------------------------------------------------
 
+        // ---------- FLAG FOR AMBIGUOUS STATION ----------
+        let isAmbiguousStation = false;
+
+        // ==================== HELPER: TODAY'S DATE ====================
+        function getTodayDate() {
+            const d = new Date();
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        // ==================== INIT ====================
         document.addEventListener('DOMContentLoaded', function() {
             initializeFirebase();
             loadRescueDataFromURL();
@@ -460,46 +491,48 @@
             }
         }
 
-        // ------------------------------------------------------------
-        // 1. PARSE QR JSON – dapatkan station & category
-        // ------------------------------------------------------------
+        // ==================== PARSE QR ====================
         function parseQRIdentifier(identifier) {
             let station = null;
             let category = null;
             let rawStationCode = null;
-            let rawCategoryCode = null;
+            isAmbiguousStation = false;
 
             try {
                 const qrData = JSON.parse(identifier);
                 rawStationCode = qrData.s;
-                rawCategoryCode = qrData.c;
-
-                // Map station
                 if (rawStationCode) {
-                    station = STATION_MAP[rawStationCode] || rawStationCode;
+                    if (rawStationCode === 'ST') {
+                        isAmbiguousStation = true;
+                        station = null;
+                        console.log("🔍 Ambiguous station code 'ST' detected – will resolve by checking data");
+                    } else {
+                        station = STATION_MAP[rawStationCode] || rawStationCode;
+                    }
                 }
-
-                // Map category
-                if (rawCategoryCode) {
-                    category = CATEGORY_MAP[rawCategoryCode] || null;
+                if (qrData.c) {
+                    category = CATEGORY_MAP[qrData.c] || null;
                 }
-
-                console.log("🔍 QR parsed:", { rawStationCode, rawCategoryCode, station, category });
+                console.log("🔍 QR parsed:", { raw: rawStationCode, station, category, ambiguous: isAmbiguousStation });
             } catch (e) {
-                // Bukan JSON – fallback parse teks biasa
                 console.log("Identifier bukan JSON, guna parsing manual");
                 let str = identifier.replace(/^Rope Bag\s*/i, '').trim();
-                if (str.toUpperCase().includes('MS') || str.includes('Main Station')) station = 'Main Station';
-                else if (str.toUpperCase().includes('ST A') || str.includes('Station A')) station = 'ST A';
-                else if (str.toUpperCase().includes('ST B') || str.includes('Station B')) station = 'ST B';
+                if (str.toUpperCase().includes('MS') || str.includes('Main Station')) {
+                    station = 'Main Station';
+                } else if (str.toUpperCase().includes('ST A') || str.includes('Station A')) {
+                    station = 'Station A';
+                } else if (str.toUpperCase().includes('ST B') || str.includes('Station B')) {
+                    station = 'Station B';
+                } else if (str.toUpperCase().includes('ST')) {
+                    isAmbiguousStation = true;
+                    station = null;
+                    console.log("🔍 Ambiguous 'ST' in text QR – will resolve by checking data");
+                }
             }
-
-            return { station, category, rawIdentifier: identifier };
+            return { station, category };
         }
 
-        // ------------------------------------------------------------
-        // 2. LOAD DATA – set station, category, sembunyi Bag ID
-        // ------------------------------------------------------------
+        // ==================== LOAD FROM URL ====================
         function loadRescueDataFromURL() {
             const urlParams = new URLSearchParams(window.location.search);
             let identifier = urlParams.get('ropebag');
@@ -512,7 +545,7 @@
 
             const parsed = parseQRIdentifier(identifier);
             
-            if (!parsed.station) {
+            if (!isAmbiguousStation && !parsed.station) {
                 showError('Station tidak dikenalpasti dalam QR code.');
                 return;
             }
@@ -521,15 +554,21 @@
                 return;
             }
 
-            currentStation = parsed.station;
+            if (!isAmbiguousStation) {
+                currentStation = parsed.station;
+            } else {
+                currentStation = null;
+            }
             currentCategory = parsed.category;
-            console.log("📍 Station:", currentStation);
+
+            console.log("📍 Station (from QR):", currentStation || "AMBIGUOUS");
             console.log("📦 Category:", currentCategory);
+            console.log("🚩 Ambiguous flag:", isAmbiguousStation);
 
             showLoading(true);
 
             document.getElementById('category').textContent = currentCategory;
-            document.getElementById('location').textContent = currentStation;
+            document.getElementById('location').textContent = currentStation || "Loading station...";
             document.getElementById('categoryTitle').innerHTML = `<i class="fas fa-tools"></i> Equipment in ${currentCategory}`;
 
             const bagIdRow = document.getElementById('bagIdRow');
@@ -538,48 +577,174 @@
             fetchEquipmentForStationAndCategory();
         }
 
-        // ------------------------------------------------------------
-        // 3. FETCH EQUIPMENT – guna station & category
-        // ------------------------------------------------------------
+        // ==================== 🆕 FIXED: Dapatkan semua dokumen, pisahkan master & harian ====================
         function fetchEquipmentForStationAndCategory() {
             if (!db) { showError('Database not initialized.'); return; }
-            console.log("🔍 Fetching equipment untuk:", currentStation, currentCategory);
 
-            db.collection('rescueEquipment')
-                .where('station', '==', currentStation)
-                .where('category', '==', currentCategory)
-                .get()
-                .then((querySnapshot) => {
-                    showLoading(false);
-                    console.log("📊 Equipment ditemui:", querySnapshot.size);
+            const today = getTodayDate();
 
-                    if (querySnapshot.empty) {
-                        createDefaultEquipment();
+            // Dapatkan SEMUA dokumen untuk stesen & kategori ini (tanpa filter inspectionDate)
+            let allDocsQuery;
+            if (isAmbiguousStation) {
+                const stationsToQuery = [
+                    ...ALL_STATION_VARIANTS['Station A'],
+                    ...ALL_STATION_VARIANTS['Station B']
+                ];
+                allDocsQuery = db.collection('rescueEquipment')
+                    .where('station', 'in', stationsToQuery)
+                    .where('category', '==', currentCategory);
+            } else {
+                let stationQueryArray = [currentStation];
+                if (STATION_OLD_MAP[currentStation]) {
+                    stationQueryArray.push(STATION_OLD_MAP[currentStation]);
+                }
+                allDocsQuery = db.collection('rescueEquipment')
+                    .where('station', 'in', stationQueryArray)
+                    .where('category', '==', currentCategory);
+            }
+
+            allDocsQuery.get()
+                .then(allSnapshot => {
+                    // Pisahkan master dan harian
+                    const masters = [];
+                    const todayDocs = [];
+
+                    allSnapshot.forEach(doc => {
+                        const data = doc.data();
+                        data.id = doc.id;
+                        // Jika inspectionDate tidak wujud atau null -> master
+                        if (!data.hasOwnProperty('inspectionDate') || data.inspectionDate === null) {
+                            masters.push(data);
+                        } else if (data.inspectionDate === today) {
+                            todayDocs.push(data);
+                        }
+                        // Dokumen dengan inspectionDate selain hari ini (lama) diabaikan
+                    });
+
+                    if (masters.length === 0) {
+                        // Tiada master – papar kosong
+                        console.warn("No master equipment found. Showing empty list.");
+                        equipmentData = [];
+                        afterDataLoad();
                         return;
                     }
 
-                    equipmentData = [];
-                    querySnapshot.forEach(doc => {
-                        const data = doc.data();
-                        data.id = doc.id;
-                        equipmentData.push(data);
-                    });
+                    if (todayDocs.length > 0) {
+                        // Ada dokumen harian – gunakan terus
+                        equipmentData = todayDocs;
+                        afterDataLoad();
+                    } else {
+                        // Tiada dokumen untuk hari ini – cipta dari master
+                        const batch = db.batch();
+                        masters.forEach(master => {
+                            const newDocRef = db.collection('rescueEquipment').doc();
+                            const newData = {
+                                station: master.station,
+                                category: master.category,
+                                equipment: master.equipment,
+                                minimumQuantity: master.minimumQuantity,
+                                currentQuantity: 0,
+                                remarks: '',
+                                status: 'Not Checked',
+                                inspector: '',
+                                shift: '',
+                                inspectionDate: today,
+                                uniqueKey: master.uniqueKey,
+                                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                            };
+                            batch.set(newDocRef, newData);
+                        });
 
-                    populateEquipmentTable();
-                    
-                    // Show inspection details modal
-                    showInspectionDetailsModal();
+                        batch.commit().then(() => {
+                            // Ambil semula dokumen yang baru dicipta
+                            // Guna semula allDocsQuery? Lebih mudah buat query baru untuk hari ini
+                            let todayQuery;
+                            if (isAmbiguousStation) {
+                                const stationsToQuery = [
+                                    ...ALL_STATION_VARIANTS['Station A'],
+                                    ...ALL_STATION_VARIANTS['Station B']
+                                ];
+                                todayQuery = db.collection('rescueEquipment')
+                                    .where('station', 'in', stationsToQuery)
+                                    .where('category', '==', currentCategory)
+                                    .where('inspectionDate', '==', today);
+                            } else {
+                                let stationQueryArray = [currentStation];
+                                if (STATION_OLD_MAP[currentStation]) {
+                                    stationQueryArray.push(STATION_OLD_MAP[currentStation]);
+                                }
+                                todayQuery = db.collection('rescueEquipment')
+                                    .where('station', 'in', stationQueryArray)
+                                    .where('category', '==', currentCategory)
+                                    .where('inspectionDate', '==', today);
+                            }
+                            return todayQuery.get().then(newSnapshot => {
+                                equipmentData = [];
+                                newSnapshot.forEach(doc => {
+                                    const data = doc.data();
+                                    data.id = doc.id;
+                                    equipmentData.push(data);
+                                });
+                                afterDataLoad();
+                            });
+                        }).catch(error => {
+                            console.error("Error creating daily docs:", error);
+                            showError("Gagal mencipta rekod harian.");
+                        });
+                    }
                 })
-                .catch((error) => {
+                .catch(error => {
                     showLoading(false);
                     showError(`Error fetching equipment: ${error.message}`);
                     console.error(error);
                 });
         }
 
-        // ------------------------------------------------------------
-        // 4. POPULATE TABLE
-        // ------------------------------------------------------------
+        // ==================== AFTER DATA LOAD ====================
+        function afterDataLoad() {
+            showLoading(false);
+
+            // ---------- Resolve ambiguous station if needed ----------
+            if (isAmbiguousStation) {
+                let stationAHasData = false;
+                let stationBHasData = false;
+
+                equipmentData.forEach(item => {
+                    const canonical = STATION_CANONICAL[item.station] || item.station;
+                    if (canonical === 'Station A') stationAHasData = true;
+                    if (canonical === 'Station B') stationBHasData = true;
+                });
+
+                if (stationAHasData && !stationBHasData) {
+                    currentStation = 'Station A';
+                    console.log("📍 Resolved ambiguous station to Station A (only A has data)");
+                } else if (stationBHasData && !stationAHasData) {
+                    currentStation = 'Station B';
+                    console.log("📍 Resolved ambiguous station to Station B (only B has data)");
+                } else if (stationAHasData && stationBHasData) {
+                    currentStation = 'Station B';
+                    console.log("📍 Ambiguous: both stations have data – defaulting to Station B");
+                } else {
+                    currentStation = 'Station A';
+                    console.log("📍 No data found – defaulting to Station A");
+                }
+
+                document.getElementById('location').textContent = currentStation;
+                document.getElementById('modalRescueStation').textContent = currentStation;
+                isAmbiguousStation = false;
+            }
+
+            if (!currentStation) {
+                currentStation = 'Main Station';
+                document.getElementById('location').textContent = currentStation;
+                document.getElementById('modalRescueStation').textContent = currentStation;
+            }
+
+            populateEquipmentTable();
+            showInspectionDetailsModal();
+        }
+
+        // ==================== POPULATE EQUIPMENT TABLE ====================
         function populateEquipmentTable() {
             const tbody = document.getElementById('equipmentList');
             tbody.innerHTML = '';
@@ -609,58 +774,19 @@
             });
         }
 
-        // ------------------------------------------------------------
-        // 5. DEFAULT EQUIPMENT
-        // ------------------------------------------------------------
+        // ==================== CREATE DEFAULT EQUIPMENT – TIDAK DIPANGGIL LAGI ====================
         function createDefaultEquipment() {
-            const defaultList = EQUIPMENT_DATABASE[currentCategory];
-            if (!defaultList || defaultList.length === 0) {
-                console.warn("Tiada default equipment untuk category:", currentCategory);
-                equipmentData = [];
-                populateEquipmentTable();
-                showInspectionDetailsModal();
-                return;
-            }
-
-            const batch = db.batch();
-            defaultList.forEach(equipName => {
-                const docRef = db.collection('rescueEquipment').doc();
-                const uniqueKey = `${currentStation}|${currentCategory}|${equipName}`;
-                batch.set(docRef, {
-                    station: currentStation,
-                    category: currentCategory,
-                    equipment: equipName,
-                    minimumQuantity: 1,
-                    currentQuantity: 0,
-                    remarks: '',
-                    status: 'Not Checked',
-                    uniqueKey: uniqueKey,
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                });
-            });
-
-            batch.commit()
-                .then(() => {
-                    console.log(`✅ Default equipment created for ${currentStation} - ${currentCategory}`);
-                    fetchEquipmentForStationAndCategory();
-                })
-                .catch(error => {
-                    console.error(error);
-                    showError('Failed to create default equipment.');
-                });
+            console.warn("createDefaultEquipment() should not be called anymore.");
+            return Promise.resolve();
         }
 
-        // ------------------------------------------------------------
-        // NEW: INSPECTION DETAILS MODAL FUNCTIONS
-        // ------------------------------------------------------------
+        // ==================== INSPECTION DETAILS MODAL ====================
         function showInspectionDetailsModal() {
-            // If already submitted, directly show content
             if (inspectionDetailsRescue.submitted) {
                 document.getElementById('rescueInfoContent').style.display = 'block';
                 return;
             }
 
-            // Populate date, day, time, station
             const now = new Date();
             const day = now.toLocaleDateString('en-US', { weekday: 'long' });
             const date = now.toLocaleDateString('en-US', { 
@@ -679,11 +805,9 @@
             document.getElementById('modalRescueTime').textContent = time;
             document.getElementById('modalRescueStation').textContent = currentStation || '-';
 
-            // Clear fields
             document.getElementById('modalRescueInspector').value = '';
             document.getElementById('modalRescueShift').value = '';
 
-            // Show modal
             document.getElementById('inspectionDetailsModalRescue').style.display = 'flex';
         }
 
@@ -693,43 +817,25 @@
 
         function cancelInspectionDetails() {
             closeInspectionDetailsModal();
-            closePopup(); // redirect back to public-inspection.html
+            closePopup();
         }
 
         function saveInspectionDetailsRescue() {
-            // Get values
             const inspector = document.getElementById('modalRescueInspector').value.trim();
             const shift = document.getElementById('modalRescueShift').value;
-
-            // Validation - all fields required
-            if (!inspector) {
-                alert('Please enter Inspector Name');
-                return;
-            }
-            if (!shift) {
-                alert('Please select Shift');
-                return;
-            }
-
-            // Store details
+            if (!inspector) { alert('Please enter Inspector Name'); return; }
+            if (!shift) { alert('Please select Shift'); return; }
             inspectionDetailsRescue = {
                 inspectorName: inspector,
                 shift: shift,
                 submitted: true
             };
-
-            // Hide modal
             closeInspectionDetailsModal();
-
-            // Show the main inspection content
             document.getElementById('rescueInfoContent').style.display = 'block';
-
             console.log(`✅ Inspection details saved.`, inspectionDetailsRescue);
         }
 
-        // ------------------------------------------------------------
-        // 6. TOGGLE INSPECTION MODE (unchanged)
-        // ------------------------------------------------------------
+        // ==================== TOGGLE INSPECTION MODE ====================
         function toggleInspectionMode() {
             isEditMode = !isEditMode;
             const inspectionBtn = document.getElementById('inspectionBtn');
@@ -753,9 +859,7 @@
             }
         }
 
-        // ------------------------------------------------------------
-        // 7. SAVE ALL DATA (unchanged)
-        // ------------------------------------------------------------
+        // ==================== SAVE ALL DATA ====================
         async function saveAllData() {
             if (!db || equipmentData.length === 0) {
                 alert('Database not initialized or no equipment data.');
@@ -779,7 +883,9 @@
                         remarks: remarksInput.value || '',
                         status: statusInput.checked ? 'Checked' : 'Not Checked',
                         lastInspection: firebase.firestore.FieldValue.serverTimestamp(),
-                        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                        inspector: inspectionDetailsRescue.inspectorName,
+                        shift: inspectionDetailsRescue.shift
                     };
 
                     await db.collection('rescueEquipment').doc(item.id).update(updatedData);
@@ -815,9 +921,7 @@
             });
         }
 
-        // ------------------------------------------------------------
-        // UTILITY FUNCTIONS (unchanged)
-        // ------------------------------------------------------------
+        // ==================== UTILITY FUNCTIONS ====================
         function showSaveSuccess() {
             const successMessage = document.getElementById('saveSuccessMessage');
             successMessage.style.display = 'flex';
@@ -851,4 +955,3 @@
     </script>
 </body>
 </html>
-
