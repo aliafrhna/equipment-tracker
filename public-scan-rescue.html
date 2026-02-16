@@ -835,7 +835,7 @@
             console.log(`✅ Inspection details saved.`, inspectionDetailsRescue);
         }
 
-        // ==================== TOGGLE INSPECTION MODE ====================
+        // ==================== TOGGLE INSPECTION MODE (DITAMBAH AUTO FILL) ====================
         function toggleInspectionMode() {
             isEditMode = !isEditMode;
             const inspectionBtn = document.getElementById('inspectionBtn');
@@ -844,6 +844,18 @@
             const editElements = document.querySelectorAll('.current-qty-edit, .remarks-edit, .status-edit');
 
             if (isEditMode) {
+                // --- AUTO FILL CURRENT QTY DENGAN MIN QTY ---
+                const rows = document.querySelectorAll('#equipmentList tr');
+                rows.forEach(row => {
+                    const minQtyCell = row.querySelector('.min-qty');
+                    const minQty = parseInt(minQtyCell.textContent) || 0;
+                    const currentQtyInput = row.querySelector('.current-qty-edit');
+                    if (currentQtyInput) {
+                        currentQtyInput.value = minQty;
+                    }
+                });
+                // ---------------------------------------------
+
                 inspectionBtn.style.display = 'none';
                 viewElements.forEach(el => el.style.display = 'none');
                 editElements.forEach(el => el.style.display = 'block');
