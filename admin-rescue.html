@@ -1064,7 +1064,7 @@
                     </div>
 
                     <div class="form-actions">
-                        <button type="submit" class="btn btn-primary">
+                        <button type="submit" class="btn btn-primary" id="submitBtn">
                             <i class="fas fa-plus"></i> Add Equipment
                         </button>
                         <button type="button" class="btn btn-secondary" onclick="clearForm()">
@@ -1213,6 +1213,8 @@
         let editingId = null;
         let currentQRCodeElement = null;
         let currentQRIdentifier = '';
+        let isSubmitting = false; // Flag untuk elak hantaran berganda
+
         let stationInventory = {
             "Main Station": { equipmentCount: 0, items: [] },
             "Station A": { equipmentCount: 0, items: [] },
@@ -1371,10 +1373,16 @@
             }
         }
 
-        // SAVE RESCUE DATA (WITH DUPLICATE CHECK)
+        // ==================== 🛑 FIXED: SAVE DATA (TANPA DUPLIKAT) ====================
         async function saveRescueData() {
             if (!db) {
                 alert("Database not ready. Please wait...");
+                return;
+            }
+
+            // Cegah hantaran berganda
+            if (isSubmitting) {
+                alert("Please wait, data is being saved...");
                 return;
             }
 
@@ -1390,8 +1398,11 @@
                 return;
             }
 
-            const uniqueId = `${station}|${category}|${equipment}|${Date.now()}`.replace(/[\/\s]/g, '_').replace(/[^\w\-]/g, '');
-            
+            // Kunci unik: station|category|equipment (tanpa timestamp)
+            const uniqueKey = `${station}|${category}|${equipment}`;
+            // ID dokumen berdasarkan uniqueKey (buang aksara khas)
+            const masterId = uniqueKey.replace(/[\/\s]/g, '_').replace(/[^\w\-]/g, '');
+
             const equipmentData = {
                 station: station,
                 category: category,
@@ -1400,44 +1411,59 @@
                 currentQuantity: currQty,
                 remarks: remarks || '',
                 lastUpdated: firebase.firestore.FieldValue.serverTimestamp(),
-                uniqueKey: `${station}|${category}|${equipment}`
-                // Note: inspectionDate tidak disertakan – ini adalah master document
+                uniqueKey: uniqueKey
+                // Tiada inspectionDate — ini adalah master document
             };
+
+            // Disable butang semasa proses
+            isSubmitting = true;
+            const submitBtn = document.getElementById('submitBtn');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+            submitBtn.disabled = true;
 
             try {
                 if (editingId) {
+                    // Jika sedang edit, gunakan ID sedia ada
                     await db.collection('rescueEquipment').doc(editingId).update(equipmentData);
                     alert("Equipment updated successfully!");
                 } else {
-                    const duplicateQuery = await db.collection('rescueEquipment')
-                        .where('uniqueKey', '==', `${station}|${category}|${equipment}`)
-                        .limit(1)
-                        .get();
+                    // Cuba dapatkan dokumen dengan uniqueKey yang sama (jika ada)
+                    const existingDoc = await db.collection('rescueEquipment').doc(masterId).get();
                     
-                    if (!duplicateQuery.empty) {
+                    if (existingDoc.exists) {
+                        // Dokumen sudah wujud, tanya nak update?
                         if (confirm(`"${equipment}" already exists in ${station} - ${category}. Update instead?`)) {
-                            const duplicateDoc = duplicateQuery.docs[0];
-                            await db.collection('rescueEquipment').doc(duplicateDoc.id).update(equipmentData);
+                            await db.collection('rescueEquipment').doc(masterId).update(equipmentData);
                             alert("Equipment updated successfully!");
                         } else {
+                            isSubmitting = false;
+                            submitBtn.innerHTML = originalText;
+                            submitBtn.disabled = false;
                             return;
                         }
                     } else {
-                        await db.collection('rescueEquipment').doc(uniqueId).set(equipmentData);
+                        // Tiada dokumen, set dengan ID yang telah ditetapkan
+                        await db.collection('rescueEquipment').doc(masterId).set(equipmentData);
                         alert("Equipment added successfully!");
                     }
                 }
                 
                 clearForm();
-                loadInventoryData();
+                loadInventoryData(); // Refresh data
                 
             } catch (error) {
                 console.error("Error saving:", error);
                 alert("Error: " + error.message);
+            } finally {
+                // Aktifkan semula butang
+                isSubmitting = false;
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
             }
         }
 
-        // ==================== 🛑 FIXED: Hanya dokumen master (tanpa inspectionDate) dimasukkan ====================
+        // ==================== LOAD INVENTORY (TAPIS DOKUMEN HARIAN) ====================
         function loadInventoryData() {
             const loadingMessage = document.getElementById('loadingMessage');
             const noDataMessage = document.getElementById('noDataMessage');
