@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rescue Equipment</title>
+    <title>Rescue Equipment - Public View</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- flatpickr for date picker -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
@@ -11,7 +11,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
     <style>
-        /* ========== GLOBAL STYLES ========== */
+        /* ========== GLOBAL STYLES ========== (sama seperti asal, tidak berubah) ========== */
         :root {
             --primary-color: #c9302c;
             --secondary-color: #6a7c92;
@@ -555,12 +555,11 @@
 </head>
 <body>
     <div class="container">
-        <!-- Sidebar -->
+        <!-- Sidebar (sama seperti asal) -->
         <div class="sidebar">
             <div class="logo">
                 <h1>Public Panel</h1>
             </div>
-
             <div class="user-profile-sidebar">
                 <div class="sidebar-avatar">G</div>
                 <div class="sidebar-user-info">
@@ -568,7 +567,6 @@
                     <p>Public Access</p>
                 </div>
             </div>
-            
             <ul class="nav-menu">
                 <li class="nav-item" onclick="navigateTo('dashboard.html')">
                     <i class="fas fa-th-large"></i>
@@ -631,15 +629,15 @@
                 <i class="fas fa-inbox"></i> No rescue equipment found.
             </div>
 
-            <!-- Stations Container (first level) -->
+            <!-- Stations Container -->
             <div id="stationsContainer" class="station-cards"></div>
 
-            <!-- Categories Container (second level, initially hidden) -->
+            <!-- Categories Container -->
             <div id="categoriesContainer" class="category-cards" style="display: none;"></div>
         </div>
     </div>
 
-    <!-- RSV‑style Equipment Modal -->
+    <!-- Equipment Modal -->
     <div class="equipment-modal-overlay" id="equipmentModal">
         <div class="equipment-modal-content">
             <div class="equipment-modal-header">
@@ -647,7 +645,6 @@
                 <button class="modal-close" onclick="closeEquipmentModal()">&times;</button>
             </div>
             <div class="equipment-modal-body">
-                <!-- Inspection meta info (inspector, shift) will be inserted here dynamically -->
                 <div id="inspectionMeta" class="inspection-meta" style="display: none;"></div>
                 <table class="equipment-table">
                     <thead>
@@ -688,7 +685,7 @@
 
         let db;
         // Master equipment data (admin defined)
-        let masterEquipment = []; // array of { id, station, category, equipment, minimumQuantity, masterCurrentQuantity, masterRemarks }
+        let masterEquipment = [];
         let stationInventory = {
             "Main Station": { items: [] },
             "Station A": { items: [] },
@@ -757,7 +754,7 @@
 
                     snapshot.forEach(doc => {
                         const data = doc.data();
-                        // Skip inspection documents
+                        // Skip inspection documents (jika ada)
                         if (data.inspectionDate) return;
 
                         let station = data.station;
@@ -794,7 +791,7 @@
                 });
         }
 
-        // Display stations (first level)
+        // Display stations
         function displayStations() {
             const stationsContainer = document.getElementById('stationsContainer');
             stationsContainer.style.display = 'grid';
@@ -820,7 +817,7 @@
             });
         }
 
-        // Select a station, show its categories and date picker
+        // Select a station
         function selectStation(station) {
             currentStation = station;
 
@@ -894,7 +891,7 @@
             const modal = document.getElementById('equipmentModal');
             document.getElementById('modalCategoryName').textContent = `${station} - ${category}`;
 
-            // Fetch inspection data for this station, category, and date
+            // Fetch inspection data for this station, category, and date (guna field 'date')
             const inspections = await fetchInspections(station, category, currentDate);
 
             // Get master items for this category
@@ -969,21 +966,15 @@
             modal.classList.add('active');
         }
 
-        // Fetch inspections from rescueInspections collection for given station, category, date
+        // 🔴 FETCH INSPECTIONS – GUNA FIELD 'date' (string) UNTUK QUERY TEPAT
         async function fetchInspections(station, category, dateStr) {
             if (!db) return [];
 
             try {
-                // We need to get all inspections for this station & category on that date
-                // Since we store timestamp, we need to query date range (start to end of day)
-                const startDate = new Date(dateStr + 'T00:00:00');
-                const endDate = new Date(dateStr + 'T23:59:59');
-
                 const snapshot = await db.collection('rescueInspections')
                     .where('station', '==', station)
                     .where('category', '==', category)
-                    .where('timestamp', '>=', startDate)
-                    .where('timestamp', '<=', endDate)
+                    .where('date', '==', dateStr)   // guna field date
                     .get();
 
                 const inspections = [];
@@ -1009,7 +1000,7 @@
             document.getElementById('equipmentModal').classList.remove('active');
         }
 
-        // PDF Export for current station and date
+        // PDF Export – gunakan field 'date' untuk konsistensi
         async function exportPDF() {
             if (!currentStation) {
                 alert("Please select a station first.");
@@ -1024,21 +1015,18 @@
             doc.setFont("helvetica", "bold");
             doc.text("Rescue Equipment Inspection Report", 105, 15, { align: "center" });
 
-            // Station, Date, Inspector info
+            // Station, Date
             doc.setFontSize(12);
             doc.setFont("helvetica", "normal");
             doc.text(`Station: ${currentStation}`, 14, 30);
             doc.text(`Date: ${currentDate}`, 14, 38);
 
-            // We need to get inspector/shift from any inspection of that day
+            // Dapatkan inspector/shift dari mana‑mana inspection pada tarikh tersebut (guna field date)
             let inspector = "-", shift = "-";
             try {
-                const startDate = new Date(currentDate + 'T00:00:00');
-                const endDate = new Date(currentDate + 'T23:59:59');
                 const anyInsp = await db.collection('rescueInspections')
                     .where('station', '==', currentStation)
-                    .where('timestamp', '>=', startDate)
-                    .where('timestamp', '<=', endDate)
+                    .where('date', '==', currentDate)
                     .limit(1)
                     .get();
                 if (!anyInsp.empty) {
@@ -1053,7 +1041,7 @@
             doc.text(`Inspector: ${inspector}`, 14, 46);
             doc.text(`Shift: ${shift}`, 14, 54);
 
-            // For each category, get equipment list
+            // Untuk setiap kategori, dapatkan equipment list
             const categories = {};
             stationInventory[currentStation].items.forEach(item => {
                 if (!categories[item.category]) categories[item.category] = [];
@@ -1068,14 +1056,13 @@
                 doc.text(category, 14, yPos);
                 yPos += 8;
 
-                // Fetch inspections for this category on currentDate
+                // Fetch inspections untuk kategori ini pada tarikh terpilih (guna field date)
                 const inspMap = new Map();
                 try {
                     const snapshot = await db.collection('rescueInspections')
                         .where('station', '==', currentStation)
                         .where('category', '==', category)
-                        .where('timestamp', '>=', new Date(currentDate + 'T00:00:00'))
-                        .where('timestamp', '<=', new Date(currentDate + 'T23:59:59'))
+                        .where('date', '==', currentDate)
                         .get();
                     snapshot.forEach(doc => {
                         const d = doc.data();
@@ -1122,7 +1109,6 @@
                 }
             }
 
-            // Save PDF
             doc.save(`Rescue_Report_${currentStation}_${currentDate}.pdf`);
         }
 
