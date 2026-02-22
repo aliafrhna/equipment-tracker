@@ -221,6 +221,7 @@
             const vehicle2Param = urlParams.get('vehicle2');
             const vehicle3Param = urlParams.get('vehicle3');
             const vehicle4Param = urlParams.get('vehicle4');
+            const ropebagParam = urlParams.get('ropebag');   // for rescue
             
             if (hoseParam) {
                 window.location.href = `public-scan-hose.html?hose=${encodeURIComponent(hoseParam)}`;
@@ -254,6 +255,11 @@
             
             if (vehicle4Param) {
                 window.location.href = `public-scan-vehicle4.html?vehicle=${encodeURIComponent(vehicle4Param)}`;
+                return true;
+            }
+
+            if (ropebagParam) {
+                window.location.href = `public-scan-rescue.html?ropebag=${encodeURIComponent(ropebagParam)}`;
                 return true;
             }
             
@@ -342,7 +348,7 @@
         }
 
         // ====================================================
-        // FIXED DETECTION LOGIC FOR MPRV
+        // FIXED DETECTION LOGIC FOR RESCUE + OTHERS
         // ====================================================
 
         function detectQRType(decodedText) {
@@ -353,6 +359,23 @@
             // Debug function
             function debugDetection(rule, found) {
                 console.log(`Rule ${rule}: ${found ? 'MATCHED' : 'NOT MATCHED'}`);
+            }
+            
+            // --- NEW: RESCUE DETECTION ---
+            // 1. JSON with type "rescue"
+            if (text.startsWith('{') && text.includes('"t":"rescue"')) {
+                console.log("✅ DETECTED: RESCUE (JSON with t:rescue)");
+                return 'rescue';
+            }
+            // 2. URL containing public-scan-rescue.html
+            if (text.includes('public-scan-rescue.html')) {
+                console.log("✅ DETECTED: RESCUE (URL)");
+                return 'rescue';
+            }
+            // 3. Parameter ropebag=
+            if (text.includes('ropebag=')) {
+                console.log("✅ DETECTED: RESCUE (ropebag parameter)");
+                return 'rescue';
             }
             
             // RULE #1: Check for MPRV by TBE prefix (HIGHEST PRIORITY)
@@ -505,16 +528,6 @@
             console.log("=== DEBUG QR SCAN ===");
             console.log("Full text:", decodedText);
             console.log("Lowercase:", decodedText.toLowerCase());
-            console.log("Includes 'vehicle3':", decodedText.toLowerCase().includes('vehicle3'));
-            console.log("Includes 'tbe':", decodedText.toLowerCase().includes('tbe'));
-            console.log("Includes 'public-scan-vehicle3':", decodedText.toLowerCase().includes('public-scan-vehicle3'));
-            
-            // Check parameters
-            if (decodedText.includes('vehicle=')) {
-                const match = decodedText.match(/vehicle=([^&]+)/i);
-                console.log("Vehicle parameter found:", match ? match[1] : 'No match');
-            }
-            
             console.log("=== END DEBUG ===");
         }
 
@@ -531,7 +544,9 @@
             stopScanner();
             
             // 3. PROCESS BERDASARKAN JENIS
-            if (qrType === 'hose') {
+            if (qrType === 'rescue') {
+                processRescueQR(decodedText);
+            } else if (qrType === 'hose') {
                 processHoseQR(decodedText);
             } else if (qrType === 'scba') {
                 processScbaQR(decodedText);
@@ -545,6 +560,35 @@
                 processRsvQR(decodedText);
             } else {
                 processRadioQR(decodedText);
+            }
+        }
+
+        // ========== NEW: RESCUE QR PROCESSING ==========
+        function processRescueQR(decodedText) {
+            console.log("🆘 Processing RESCUE QR code");
+
+            // Try to extract ropebag parameter if present
+            let ropebagValue = extractParameterSafely(decodedText, 'ropebag');
+            
+            if (!ropebagValue && decodedText.includes('ropebag=')) {
+                const match = decodedText.match(/ropebag=([^&]+)/i);
+                if (match && match[1]) {
+                    ropebagValue = decodeURIComponent(match[1]);
+                }
+            }
+            
+            // If still no ropebag, use the whole decoded text (which could be JSON)
+            if (!ropebagValue) {
+                ropebagValue = decodedText.trim();
+            }
+            
+            if (ropebagValue && ropebagValue.trim().length > 0) {
+                console.log("✅ Redirecting to RESCUE page with ropebag:", ropebagValue);
+                window.location.href = `public-scan-rescue.html?ropebag=${encodeURIComponent(ropebagValue)}`;
+            } else {
+                console.error("❌ Invalid RESCUE QR: No value found");
+                alert("Invalid Rescue QR code format. Please scan a valid Rescue QR code.");
+                startCameraScan();
             }
         }
 
@@ -915,7 +959,9 @@
                         console.log("🎯 Detected QR type:", qrType);
                         
                         setTimeout(() => {
-                            if (qrType === 'hose') {
+                            if (qrType === 'rescue') {
+                                processRescueQR(decodedText);
+                            } else if (qrType === 'hose') {
                                 processHoseQR(decodedText);
                             } else if (qrType === 'scba') {
                                 processScbaQR(decodedText);
