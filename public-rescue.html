@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rescue Equipment - Public View</title>
+    <title>Rescue Equipment</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- flatpickr for date picker -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
@@ -11,7 +11,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
     <style>
-        /* ========== GLOBAL STYLES ========== (sama seperti asal, tidak berubah) ========== */
+        /* ========== GLOBAL STYLES ========== (sama seperti asal) ========== */
         :root {
             --primary-color: #c9302c;
             --secondary-color: #6a7c92;
@@ -297,18 +297,18 @@
             margin-bottom: 15px;
         }
 
-        /* Category Cards (second level) */
+        /* Category Cards (second level) – DIBESARKAN SEDIKIT */
         .category-cards {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
             gap: 20px;
             margin-top: 20px;
         }
 
         .category-card {
             background: white;
-            border-radius: 10px;
-            padding: 20px 15px;
+            border-radius: 12px;
+            padding: 25px 20px;        /* asalnya 20px 15px */
             box-shadow: 0 4px 12px rgba(0,0,0,0.05);
             border: 1px solid var(--border-color);
             cursor: pointer;
@@ -323,19 +323,19 @@
         }
 
         .category-card i {
-            font-size: 30px;
+            font-size: 36px;            /* asalnya 30px */
             color: var(--primary-color);
-            margin-bottom: 10px;
+            margin-bottom: 12px;
         }
 
         .category-card h4 {
-            font-size: 16px;
-            margin-bottom: 8px;
+            font-size: 18px;             /* asalnya 16px */
+            margin-bottom: 10px;
             color: var(--dark-text);
         }
 
         .category-card .item-count {
-            font-size: 14px;
+            font-size: 15px;              /* asalnya 14px */
             color: var(--light-text);
         }
 
@@ -346,7 +346,7 @@
             color: var(--light-text);
         }
 
-        /* ========== RSV‑STYLE EQUIPMENT MODAL ========== */
+        /* ========== RSV‑STYLE EQUIPMENT MODAL ========== (sama seperti asal) ========== */
         .equipment-modal-overlay {
             position: fixed;
             top: 0;
@@ -835,7 +835,8 @@
                 onChange: function(selectedDates, dateStr) {
                     if (dateStr) {
                         currentDate = dateStr;
-                        // Categories remain same; modal will use new date
+                        // 🔴 KEMASKINI KATEGORI APABILA TARIKH BERUBAH
+                        displayCategories(currentStation);
                     }
                 }
             });
@@ -843,28 +844,51 @@
             displayCategories(station);
         }
 
-        // Display categories for selected station
-        function displayCategories(station) {
+        // 🔴 DISPLAY KATEGORI – HANYA YANG ADA INSPECTION PADA TARIKH DIPILIH
+        async function displayCategories(station) {
             const categoriesContainer = document.getElementById('categoriesContainer');
-            categoriesContainer.innerHTML = '';
+            categoriesContainer.innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i> Loading categories...</div>';
 
+            // Dapatkan semua inspection untuk stesen ini pada tarikh terpilih
+            let inspectedCategories = new Set();
+            try {
+                const snapshot = await db.collection('rescueInspections')
+                    .where('station', '==', station)
+                    .where('date', '==', currentDate)
+                    .get();
+                
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    if (data.category) {
+                        inspectedCategories.add(data.category);
+                    }
+                });
+            } catch (error) {
+                console.error("Error fetching inspections for categories:", error);
+                // Jika gagal, mungkin papar semua kategori sebagai fallback? Kita akan papar kosong.
+            }
+
+            // Dapatkan semua kategori dari master equipment
             const items = stationInventory[station].items;
-            const categories = {};
+            const allCategories = {};
             items.forEach(item => {
                 const cat = item.category;
-                if (!categories[cat]) categories[cat] = [];
-                categories[cat].push(item);
+                if (!allCategories[cat]) allCategories[cat] = [];
+                allCategories[cat].push(item);
             });
 
-            const categoryNames = Object.keys(categories).sort();
+            // Tapis hanya kategori yang ada inspection
+            const categoryNames = Object.keys(allCategories).filter(cat => inspectedCategories.has(cat)).sort();
+
+            categoriesContainer.innerHTML = '';
 
             if (categoryNames.length === 0) {
-                categoriesContainer.innerHTML = '<div class="no-data" style="grid-column: 1/-1;">No categories found</div>';
+                categoriesContainer.innerHTML = '<div class="no-data" style="grid-column: 1/-1;">No inspections found for this date</div>';
                 return;
             }
 
             categoryNames.forEach(cat => {
-                const catItems = categories[cat];
+                const catItems = allCategories[cat];
                 const card = document.createElement('div');
                 card.className = 'category-card';
                 card.onclick = () => showEquipmentModal(station, cat);
@@ -966,7 +990,7 @@
             modal.classList.add('active');
         }
 
-        // 🔴 FETCH INSPECTIONS – GUNA FIELD 'date' (string) UNTUK QUERY TEPAT
+        // Fetch inspections – GUNA FIELD 'date'
         async function fetchInspections(station, category, dateStr) {
             if (!db) return [];
 
@@ -974,7 +998,7 @@
                 const snapshot = await db.collection('rescueInspections')
                     .where('station', '==', station)
                     .where('category', '==', category)
-                    .where('date', '==', dateStr)   // guna field date
+                    .where('date', '==', dateStr)
                     .get();
 
                 const inspections = [];
@@ -1000,7 +1024,7 @@
             document.getElementById('equipmentModal').classList.remove('active');
         }
 
-        // PDF Export – gunakan field 'date' untuk konsistensi
+        // PDF Export – gunakan field 'date'
         async function exportPDF() {
             if (!currentStation) {
                 alert("Please select a station first.");
@@ -1021,7 +1045,7 @@
             doc.text(`Station: ${currentStation}`, 14, 30);
             doc.text(`Date: ${currentDate}`, 14, 38);
 
-            // Dapatkan inspector/shift dari mana‑mana inspection pada tarikh tersebut (guna field date)
+            // Dapatkan inspector/shift dari mana‑mana inspection pada tarikh tersebut
             let inspector = "-", shift = "-";
             try {
                 const anyInsp = await db.collection('rescueInspections')
@@ -1041,71 +1065,93 @@
             doc.text(`Inspector: ${inspector}`, 14, 46);
             doc.text(`Shift: ${shift}`, 14, 54);
 
-            // Untuk setiap kategori, dapatkan equipment list
+            // Untuk setiap kategori yang ADA inspection pada tarikh ini
             const categories = {};
-            stationInventory[currentStation].items.forEach(item => {
-                if (!categories[item.category]) categories[item.category] = [];
-                categories[item.category].push(item);
-            });
-
-            let yPos = 70;
-            for (const [category, items] of Object.entries(categories)) {
-                // Category title
-                doc.setFontSize(14);
-                doc.setFont("helvetica", "bold");
-                doc.text(category, 14, yPos);
-                yPos += 8;
-
-                // Fetch inspections untuk kategori ini pada tarikh terpilih (guna field date)
-                const inspMap = new Map();
-                try {
-                    const snapshot = await db.collection('rescueInspections')
-                        .where('station', '==', currentStation)
-                        .where('category', '==', category)
-                        .where('date', '==', currentDate)
-                        .get();
-                    snapshot.forEach(doc => {
-                        const d = doc.data();
-                        inspMap.set(d.equipment, d);
-                    });
-                } catch (e) {
-                    console.error("Error fetching inspections for PDF", e);
-                }
-
-                // Build table data
-                const tableData = [];
-                items.sort((a, b) => a.equipment.localeCompare(b.equipment)).forEach((item, idx) => {
-                    const insp = inspMap.get(item.equipment);
-                    const currentQty = insp ? insp.currentQuantity : item.masterCurrentQuantity;
-                    const status = insp ? (insp.status === 'Checked' ? 'OK' : 'NOT RECORDED') : 'NOT RECORDED';
-                    const remarks = insp ? insp.remarks : item.masterRemarks;
-                    tableData.push([
-                        (idx + 1).toString(),
-                        item.equipment,
-                        item.minimumQuantity.toString(),
-                        currentQty.toString(),
-                        status,
-                        remarks || '-'
-                    ]);
-                });
-
-                doc.autoTable({
-                    startY: yPos,
-                    head: [['No.', 'Equipment', 'Req Qty', 'Curr Qty', 'Status', 'Remarks']],
-                    body: tableData,
-                    theme: 'grid',
-                    styles: { fontSize: 9 },
-                    headStyles: { fillColor: [201, 48, 44] },
-                    margin: { left: 14, right: 14 },
-                    didDrawPage: function(data) {
-                        yPos = data.cursor.y + 10;
+            // Dapatkan semua inspection untuk stesen pada tarikh ini, kumpul mengikut kategori
+            try {
+                const snapshot = await db.collection('rescueInspections')
+                    .where('station', '==', currentStation)
+                    .where('date', '==', currentDate)
+                    .get();
+                
+                snapshot.forEach(doc => {
+                    const d = doc.data();
+                    if (!categories[d.category]) {
+                        categories[d.category] = [];
                     }
+                    // Simpan inspection dalam map untuk senarai equipment nanti
                 });
+            } catch (e) {
+                console.error("Error fetching categories for PDF", e);
+            }
 
-                yPos = doc.lastAutoTable.finalY + 15;
-                if (yPos > 270) {
-                    doc.addPage();
-                    yPos = 20;
+            // Dapatkan senarai equipment untuk setiap kategori yang diinspeksi
+            const categoryNames = Object.keys(categories);
+            if (categoryNames.length === 0) {
+                doc.text("No inspection data for this date.", 14, 70);
+            } else {
+                let yPos = 70;
+                for (const category of categoryNames) {
+                    // Category title
+                    doc.setFontSize(14);
+                    doc.setFont("helvetica", "bold");
+                    doc.text(category, 14, yPos);
+                    yPos += 8;
+
+                    // Fetch inspections untuk kategori ini
+                    const inspMap = new Map();
+                    try {
+                        const snapshot = await db.collection('rescueInspections')
+                            .where('station', '==', currentStation)
+                            .where('category', '==', category)
+                            .where('date', '==', currentDate)
+                            .get();
+                        snapshot.forEach(doc => {
+                            const d = doc.data();
+                            inspMap.set(d.equipment, d);
+                        });
+                    } catch (e) {
+                        console.error("Error fetching inspections for PDF", e);
+                    }
+
+                    // Dapatkan master items untuk kategori ini (guna stationInventory)
+                    const masterItems = stationInventory[currentStation].items.filter(item => item.category === category);
+                    
+                    // Build table data
+                    const tableData = [];
+                    masterItems.sort((a, b) => a.equipment.localeCompare(b.equipment)).forEach((item, idx) => {
+                        const insp = inspMap.get(item.equipment);
+                        const currentQty = insp ? insp.currentQuantity : item.masterCurrentQuantity;
+                        const status = insp ? (insp.status === 'Checked' ? 'OK' : 'NOT RECORDED') : 'NOT RECORDED';
+                        const remarks = insp ? insp.remarks : item.masterRemarks;
+                        tableData.push([
+                            (idx + 1).toString(),
+                            item.equipment,
+                            item.minimumQuantity.toString(),
+                            currentQty.toString(),
+                            status,
+                            remarks || '-'
+                        ]);
+                    });
+
+                    doc.autoTable({
+                        startY: yPos,
+                        head: [['No.', 'Equipment', 'Req Qty', 'Curr Qty', 'Status', 'Remarks']],
+                        body: tableData,
+                        theme: 'grid',
+                        styles: { fontSize: 9 },
+                        headStyles: { fillColor: [201, 48, 44] },
+                        margin: { left: 14, right: 14 },
+                        didDrawPage: function(data) {
+                            yPos = data.cursor.y + 10;
+                        }
+                    });
+
+                    yPos = doc.lastAutoTable.finalY + 15;
+                    if (yPos > 270) {
+                        doc.addPage();
+                        yPos = 20;
+                    }
                 }
             }
 
