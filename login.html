@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!-- TAMBAHAN PENTING -->
   <title>Admin Login</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
@@ -244,7 +245,7 @@
       }
     }
 
-    /* Responsive Design */
+    /* Responsive Design - tambahan untuk mobile */
     @media (max-width: 768px) {
       .main-container {
         flex-direction: column;
@@ -266,6 +267,29 @@
       
       .login-section {
         padding: 25px;
+      }
+      
+      /* TAMBAHAN UNTUK MOBILE */
+      input, button {
+        font-size: 16px;  /* Mencegah zoom automatik di iOS */
+        padding: 14px 20px 14px 45px; /* Lebih selesa untuk sentuhan */
+      }
+      
+      h2 {
+        font-size: 1.5rem;
+      }
+      
+      .circle-logo {
+        width: 50px;
+        height: 50px;
+      }
+      
+      .circle-logo i {
+        font-size: 1.3rem;
+      }
+      
+      .login-section {
+        padding: 20px;
       }
     }
   </style>
