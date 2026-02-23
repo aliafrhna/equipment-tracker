@@ -2,12 +2,12 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rescue Equipment Inspection · mobile friendly</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>Rescue Equipment Inspection</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="scanner.css">
     <style>
-        /* ========== YOUR EXACT STYLES (unchanged) ========== */
+        /* ========== YOUR EXACT STYLES (unchanged structure) ========== */
         body {
             background-image: url('images/rescue.jpg');
             background-size: cover;
@@ -39,12 +39,22 @@
         }
         .close-btn:hover { background-color: #c82333; }
 
+        /* table base */
         .equipment-table {
-            width: 100%; border-collapse: collapse; margin-top: 20px; background-color: white;
-            border-radius: 8px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background-color: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
         .equipment-table th {
-            background-color: #2c3e50; color: white; padding: 12px; text-align: left; font-weight: 600;
+            background-color: #2c3e50;
+            color: white;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
         }
         .equipment-table td { padding: 12px; border-bottom: 1px solid #eee; }
         .equipment-table tr:hover { background-color: #f8f9fa; }
@@ -229,115 +239,77 @@
             color: #dc3545;
         }
 
-        /* ========== 📱 MOBILE FRIENDLY ADDITIONS (no other changes) ========== */
+        /* ========== 📱 MOBILE FRIENDLY ADDITIONS ========== */
+        .equipment-table-container {
+            width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            margin: 10px 0;
+            border-radius: 8px;
+        }
+
         @media screen and (max-width: 768px) {
-            /* main container padding */
             .info-popup {
-                padding: 12px;
-                box-sizing: border-box;
+                padding: 10px;
             }
-
-            /* header font shrink */
             .popup-header h1 {
-                font-size: 1.4rem;
+                font-size: 1.3rem;
             }
-
-            /* bag info grid → stacked */
             .bag-info-grid {
                 grid-template-columns: 1fr;
-                gap: 12px;
-                padding: 16px;
+                gap: 10px;
+                padding: 15px;
             }
-
-            /* table horizontal scroll + compact cells */
             .equipment-table {
-                display: block;
-                overflow-x: auto;
-                -webkit-overflow-scrolling: touch;
-                white-space: nowrap;
-                border-radius: 8px;
+                min-width: 650px;
+                font-size: 0.85rem;
             }
-
             .equipment-table th,
             .equipment-table td {
-                padding: 10px 8px;
-                font-size: 0.9rem;
+                padding: 8px 6px;
+                white-space: nowrap;
             }
-
             .equipment-table input[type="number"] {
-                width: 65px;
-                padding: 5px;
-                font-size: 0.9rem;
+                width: 60px;
+                padding: 4px;
             }
-
             .equipment-table textarea {
-                min-height: 50px;
-                font-size: 0.9rem;
+                min-height: 40px;
+                font-size: 0.8rem;
+                width: 120px;
             }
-
             .status-checkbox {
-                width: 22px;
-                height: 22px;
+                width: 20px;
+                height: 20px;
             }
-
-            /* modal grids stacked */
+            .inspection-btn, .save-btn {
+                width: 100%;
+                padding: 14px 10px;
+                font-size: 1rem;
+                justify-content: center;
+            }
             .info-grid {
                 grid-template-columns: 1fr;
-                gap: 12px;
-                padding: 12px;
+                gap: 10px;
             }
-
-            .inspection-modal-content {
-                width: 95%;
-                margin: 0 10px;
-            }
-
             .modal-footer {
                 flex-direction: column;
                 gap: 8px;
             }
-
             .modal-btn {
                 width: 100%;
-                justify-content: center;
             }
-
-            /* inspection & save buttons full width (optional, but cleaner) */
-            .inspection-btn,
-            .save-btn {
-                width: 100%;
-                justify-content: center;
-                padding: 14px 20px;
-                font-size: 1rem;
-            }
-
-            /* smaller value inside modal header grid */
-            .inspection-modal-content .info-value {
-                font-size: 1rem;
-            }
-
-            /* reduce bag id row if present */
-            .bag-info-grid .info-value {
-                font-size: 0.95rem;
-                padding: 6px;
+            .inspection-modal-content {
+                width: 95%;
+                margin: 10px;
             }
         }
 
-        /* very small screens (optional extra tweak) */
         @media screen and (max-width: 480px) {
             .equipment-table th,
             .equipment-table td {
-                padding: 8px 5px;
-                font-size: 0.85rem;
-            }
-
-            .popup-header h1 {
-                font-size: 1.2rem;
-            }
-
-            .header-buttons .close-btn {
-                padding: 6px 12px;
-                font-size: 13px;
+                padding: 6px 4px;
+                font-size: 0.8rem;
             }
         }
     </style>
@@ -434,18 +406,20 @@
 
             <div class="equipment-section">
                 <h3><i class="fas fa-tools"></i> <span id="categoryTitle">Equipment</span></h3>
-                <table class="equipment-table" id="equipmentTable">
-                    <thead>
-                        <tr>
-                            <th>Equipment Name</th>
-                            <th>Min Qty</th>
-                            <th>Current Qty</th>
-                            <th>Remarks</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
-                    <tbody id="equipmentList"></tbody>
-                </table>
+                <div class="equipment-table-container">
+                    <table class="equipment-table" id="equipmentTable">
+                        <thead>
+                            <tr>
+                                <th>Equipment Name</th>
+                                <th>Min Qty</th>
+                                <th>Current Qty</th>
+                                <th>Remarks</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="equipmentList"></tbody>
+                    </table>
+                </div>
             </div>
 
             <div class="inspection-section">
@@ -491,18 +465,16 @@
         // ==================== STATION MAP (QR → new name) ====================
         const STATION_MAP = {
             'MA': 'Main Station',
-            'ST': 'ST_AMBIGUOUS',   // 🟢 AMBIGUOUS – both Station A and Station B use 'ST'
-            'SA': 'Station A',       // new code for Station A
-            'SB': 'Station B'        // new code for Station B
+            'ST': 'ST_AMBIGUOUS',
+            'SA': 'Station A',
+            'SB': 'Station B'
         };
 
-        // ==================== OLD NAMES (Firestore) ====================
         const STATION_OLD_MAP = {
             'Station A': 'ST A',
             'Station B': 'ST B'
         };
 
-        // ==================== CANONICAL NAMES ====================
         const STATION_CANONICAL = {
             'Main Station': 'Main Station',
             'Station A': 'Station A',
@@ -511,14 +483,12 @@
             'ST B': 'Station B'
         };
 
-        // ==================== ALL POSSIBLE STATION NAMES FOR QUERY ====================
         const ALL_STATION_VARIANTS = {
             'Main Station': ['Main Station'],
             'Station A': ['Station A', 'ST A'],
             'Station B': ['Station B', 'ST B']
         };
 
-        // ==================== EQUIPMENT DATABASE (DEFAULT) ====================
         const EQUIPMENT_DATABASE = {
             "Rope Bag": [
                 "Main Line 100m (11–13mm)",
@@ -568,17 +538,19 @@
         let equipmentData = [];
         let isEditMode = false;
 
-        // ---------- INSPECTION DETAILS STATE ----------
         let inspectionDetailsRescue = {
             inspectorName: '',
             shift: '',
             submitted: false
         };
 
-        // ---------- FLAG FOR AMBIGUOUS STATION ----------
         let isAmbiguousStation = false;
 
-        // ==================== INIT ====================
+        // Helper: create deterministic ID (same as admin page)
+        function sanitizeDocId(str) {
+            return str.replace(/[^a-zA-Z0-9_-]/g, '_');
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
             initializeFirebase();
             loadRescueDataFromURL();
@@ -594,7 +566,6 @@
             }
         }
 
-        // ==================== PARSE QR – HANDLE AMBIGUOUS 'ST' ====================
         function parseQRIdentifier(identifier) {
             let station = null;
             let category = null;
@@ -608,7 +579,6 @@
                     if (rawStationCode === 'ST') {
                         isAmbiguousStation = true;
                         station = null;
-                        console.log("🔍 Ambiguous station code 'ST' detected – will resolve by checking data");
                     } else {
                         station = STATION_MAP[rawStationCode] || rawStationCode;
                     }
@@ -616,10 +586,7 @@
                 if (qrData.c) {
                     category = CATEGORY_MAP[qrData.c] || null;
                 }
-                console.log("🔍 QR parsed:", { raw: rawStationCode, station, category, ambiguous: isAmbiguousStation });
             } catch (e) {
-                // Fallback for non-JSON QR – also handle 'ST' ambiguity
-                console.log("Identifier bukan JSON, guna parsing manual");
                 let str = identifier.replace(/^Rope Bag\s*/i, '').trim();
                 if (str.toUpperCase().includes('MS') || str.includes('Main Station')) {
                     station = 'Main Station';
@@ -630,22 +597,19 @@
                 } else if (str.toUpperCase().includes('ST')) {
                     isAmbiguousStation = true;
                     station = null;
-                    console.log("🔍 Ambiguous 'ST' in text QR – will resolve by checking data");
                 }
             }
             return { station, category };
         }
 
-        // ==================== LOAD FROM URL ====================
         function loadRescueDataFromURL() {
             const urlParams = new URLSearchParams(window.location.search);
             let identifier = urlParams.get('ropebag');
             if (!identifier) {
-                showError('No bag identifier provided.');
+                showError('No rope bag identifier provided.');
                 return;
             }
             identifier = decodeURIComponent(identifier);
-            console.log("🔍 Raw identifier:", identifier);
 
             const parsed = parseQRIdentifier(identifier);
             
@@ -665,10 +629,6 @@
             }
             currentCategory = parsed.category;
 
-            console.log("📍 Station (from QR):", currentStation || "AMBIGUOUS");
-            console.log("📦 Category:", currentCategory);
-            console.log("🚩 Ambiguous flag:", isAmbiguousStation);
-
             showLoading(true);
 
             document.getElementById('category').textContent = currentCategory;
@@ -681,7 +641,6 @@
             fetchEquipmentForStationAndCategory();
         }
 
-        // ==================== FIXED: FETCH + RESOLVE + FILTER BY STATION ====================
         function fetchEquipmentForStationAndCategory() {
             if (!db) { showError('Database not initialized.'); return; }
 
@@ -691,7 +650,6 @@
                     ...ALL_STATION_VARIANTS['Station A'],
                     ...ALL_STATION_VARIANTS['Station B']
                 ];
-                console.log("🔍 Ambiguous – querying both Station A and Station B variants:", stationsToQuery);
                 query = db.collection('rescueEquipment')
                     .where('station', 'in', stationsToQuery)
                     .where('category', '==', currentCategory);
@@ -700,7 +658,6 @@
                 if (STATION_OLD_MAP[currentStation]) {
                     stationQueryArray.push(STATION_OLD_MAP[currentStation]);
                 }
-                console.log("🔍 Querying stations:", stationQueryArray);
                 query = db.collection('rescueEquipment')
                     .where('station', 'in', stationQueryArray)
                     .where('category', '==', currentCategory);
@@ -709,62 +666,59 @@
             query.get()
                 .then((querySnapshot) => {
                     showLoading(false);
-                    console.log("📊 Equipment ditemui:", querySnapshot.size);
+
+                    // 🚫 FILTER OUT DAILY RECORDS (those with inspectionDate)
+                    let masterDocs = [];
+                    querySnapshot.forEach(doc => {
+                        const data = doc.data();
+                        // If document has inspectionDate field, it's a daily record → skip
+                        if (data.hasOwnProperty('inspectionDate') && data.inspectionDate !== null) {
+                            return; // skip daily
+                        }
+                        masterDocs.push({ id: doc.id, ...data });
+                    });
+
+                    console.log(`📊 Master equipment ditemui: ${masterDocs.length}`);
 
                     // ---------- RESOLVE AMBIGUOUS STATION ----------
                     if (isAmbiguousStation) {
                         let stationAHasData = false;
                         let stationBHasData = false;
 
-                        querySnapshot.forEach(doc => {
-                            const data = doc.data();
-                            const canonical = STATION_CANONICAL[data.station] || data.station;
+                        masterDocs.forEach(item => {
+                            const canonical = STATION_CANONICAL[item.station] || item.station;
                             if (canonical === 'Station A') stationAHasData = true;
                             if (canonical === 'Station B') stationBHasData = true;
                         });
 
                         if (stationAHasData && !stationBHasData) {
                             currentStation = 'Station A';
-                            console.log("📍 Resolved ambiguous station to Station A (only A has data)");
                         } else if (stationBHasData && !stationAHasData) {
                             currentStation = 'Station B';
-                            console.log("📍 Resolved ambiguous station to Station B (only B has data)");
                         } else if (stationAHasData && stationBHasData) {
-                            // Keutamaan kepada Station B jika kedua-dua ada data
                             currentStation = 'Station B';
-                            console.log("📍 Ambiguous: both stations have data – defaulting to Station B");
                         } else {
-                            currentStation = 'Station A'; // tiada data langsung, default A
-                            console.log("📍 No data found – defaulting to Station A");
+                            currentStation = 'Station A';
                         }
 
-                        // Update UI
                         document.getElementById('location').textContent = currentStation;
                         document.getElementById('modalRescueStation').textContent = currentStation;
-                        isAmbiguousStation = false; // resolved
+                        isAmbiguousStation = false;
                     }
 
-                    // Jika tiada data langsung, buat default
-                    if (querySnapshot.empty) {
+                    // If no master documents, create default equipment
+                    if (masterDocs.length === 0) {
                         createDefaultEquipment();
                         return;
                     }
 
-                    // ---------- TAPIS DATA MENGIKUT STESEN YANG DIPILIH ----------
-                    let filteredDocs = [];
-                    querySnapshot.forEach(doc => {
-                        const data = doc.data();
-                        const canonicalStation = STATION_CANONICAL[data.station] || data.station;
-                        if (canonicalStation === currentStation) {
-                            filteredDocs.push({ id: doc.id, ...data });
-                        }
+                    // Filter by currentStation (canonical)
+                    let filteredDocs = masterDocs.filter(item => {
+                        const canonical = STATION_CANONICAL[item.station] || item.station;
+                        return canonical === currentStation;
                     });
 
-                    console.log(`🔍 Selepas tapisan: ${filteredDocs.length} dokumen untuk stesen ${currentStation}`);
-
                     if (filteredDocs.length === 0) {
-                        // Sekiranya tiada data untuk stesen terpilih (sepatutnya tidak berlaku), buat default
-                        console.warn(`Tiada data untuk stesen ${currentStation}, mencipta default...`);
                         createDefaultEquipment();
                         return;
                     }
@@ -780,7 +734,6 @@
                 });
         }
 
-        // ==================== POPULATE EQUIPMENT TABLE ====================
         function populateEquipmentTable() {
             const tbody = document.getElementById('equipmentList');
             tbody.innerHTML = '';
@@ -810,11 +763,10 @@
             });
         }
 
-        // ==================== CREATE DEFAULT EQUIPMENT ====================
+        // 🛑 CREATE DEFAULT EQUIPMENT USING DETERMINISTIC IDS (NO DUPLICATES)
         function createDefaultEquipment() {
             const defaultList = EQUIPMENT_DATABASE[currentCategory];
             if (!defaultList || defaultList.length === 0) {
-                console.warn("Tiada default equipment untuk category:", currentCategory);
                 equipmentData = [];
                 populateEquipmentTable();
                 showInspectionDetailsModal();
@@ -823,8 +775,8 @@
 
             const batch = db.batch();
             defaultList.forEach(equipName => {
-                const docRef = db.collection('rescueEquipment').doc();
-                const uniqueKey = `${currentStation}|${currentCategory}|${equipName}`;
+                const masterId = sanitizeDocId(`${currentStation}|${currentCategory}|${equipName}`);
+                const docRef = db.collection('rescueEquipment').doc(masterId);
                 batch.set(docRef, {
                     station: currentStation,
                     category: currentCategory,
@@ -833,14 +785,15 @@
                     currentQuantity: 0,
                     remarks: '',
                     status: 'Not Checked',
-                    uniqueKey: uniqueKey,
+                    uniqueKey: masterId,
                     timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                });
+                    // NO inspectionDate field – this marks it as master
+                }, { merge: true });
             });
 
             batch.commit()
                 .then(() => {
-                    console.log(`✅ Default equipment created for ${currentStation} - ${currentCategory}`);
+                    console.log(`✅ Default equipment ensured for ${currentStation} - ${currentCategory}`);
                     fetchEquipmentForStationAndCategory();
                 })
                 .catch(error => {
@@ -849,7 +802,6 @@
                 });
         }
 
-        // ==================== INSPECTION DETAILS MODAL ====================
         function showInspectionDetailsModal() {
             if (inspectionDetailsRescue.submitted) {
                 document.getElementById('rescueInfoContent').style.display = 'block';
@@ -901,10 +853,8 @@
             };
             closeInspectionDetailsModal();
             document.getElementById('rescueInfoContent').style.display = 'block';
-            console.log(`✅ Inspection details saved.`, inspectionDetailsRescue);
         }
 
-        // ==================== TOGGLE INSPECTION MODE ====================
         function toggleInspectionMode() {
             isEditMode = !isEditMode;
             const inspectionBtn = document.getElementById('inspectionBtn');
@@ -928,7 +878,6 @@
             }
         }
 
-        // ==================== SAVE ALL DATA (FIXED) ====================
         async function saveAllData() {
             if (!db || equipmentData.length === 0) {
                 alert('Database not initialized or no equipment data.');
@@ -941,7 +890,7 @@
             saveBtn.disabled = true;
 
             try {
-                const todayStr = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+                const todayStr = new Date().toISOString().split('T')[0];
 
                 for (let i = 0; i < equipmentData.length; i++) {
                     const item = equipmentData[i];
@@ -959,12 +908,9 @@
                         shift: inspectionDetailsRescue.shift
                     };
 
-                    // 1. Update dokumen dalam koleksi rescueEquipment
                     await db.collection('rescueEquipment').doc(item.id).update(updatedData);
                     equipmentData[i] = { ...item, ...updatedData };
 
-                    // 2. Simpan rekod inspection ke koleksi rescueInspections (untuk public view)
-                    //    ID unik: station_category_equipment_tarikh (spasi diganti underscore)
                     const safeStation = currentStation.replace(/\s+/g, '_');
                     const safeCategory = currentCategory.replace(/\s+/g, '_');
                     const safeEquipment = item.equipment.replace(/\s+/g, '_');
@@ -984,7 +930,6 @@
                     });
                 }
 
-                console.log('✅ All data saved to rescueEquipment and rescueInspections');
                 updateViewModeData();
                 showSaveSuccess();
                 setTimeout(() => toggleInspectionMode(), 2000);
@@ -1013,7 +958,6 @@
             });
         }
 
-        // ==================== UTILITY FUNCTIONS ====================
         function showSaveSuccess() {
             const successMessage = document.getElementById('saveSuccessMessage');
             successMessage.style.display = 'flex';
